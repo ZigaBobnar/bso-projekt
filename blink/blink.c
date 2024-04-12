@@ -12,6 +12,9 @@
 #include "esp/gpio.h"
 #include <i2c/i2c.h>
 
+#include "common.h"
+#include "config.h"
+
 #define I2C_BUS 0
 #define SCL_PIN 14
 #define SDA_PIN 12
@@ -25,29 +28,34 @@
 const int gpio = 2;
 
 
-
 void task_blink_i2c(void *ignore)
 {
-    uint8_t data = led1;
     i2c_init(I2C_BUS, SCL_PIN, SDA_PIN, I2C_FREQ_100K);
+
+    uint8_t counter = 0;
+    uint8_t led_values[] = {
+        led1,
+        led3,
+        led2,
+        led4,
+    };
+    uint8_t led_count = 4;
 
     while (true)
     {
-        data = led1;
-        i2c_slave_write(I2C_BUS, I2C_ADDRESS, NULL, &data, 1);
+        uint8_t led_state = 0xff;
+        for (uint8_t i = 0; i < led_count; i++)
+        {
+            if ((counter >> i) & 1)
+            {
+                led_state &= led_values[i];
+            }
+        }
+
+        i2c_slave_write(I2C_BUS, I2C_ADDRESS, NULL, &led_state, 1);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        data = led2;
-        i2c_slave_write(I2C_BUS, I2C_ADDRESS, NULL, &data, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        
-        data = led3;
-        i2c_slave_write(I2C_BUS, I2C_ADDRESS, NULL, &data, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        data = led4;
-        i2c_slave_write(I2C_BUS, I2C_ADDRESS, NULL, &data, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        counter++;
     }
     vTaskDelete(NULL);
 }
@@ -92,11 +100,39 @@ void blinkenRegisterTask(void *pvParameters)
     }
 }
 
-void user_init(void)
-{
+
+
+void task_ota_setup(void *pvParameters) {
+}
+
+
+#include "espressif/esp_common.h"
+#include "esp/uart.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "timers.h"
+#include "esp8266.h"
+#include "config.h"
+#include "ota-tftp.h"
+
+void user_init(void) {
     uart_set_baud(0, 115200);
+    
+	// WiFi configuration
+	struct sdk_station_config config = { .ssid = WIFI_SSID, .password = WIFI_PASSWORD, };
+	sdk_wifi_station_set_auto_connect(1);
+	sdk_wifi_set_opmode(STATION_MODE);
+	sdk_wifi_station_set_config(&config);
+	sdk_wifi_station_connect();
+
+	// OTA configuration
+	ota_tftp_init_server(TFTP_PORT);
+
     xTaskCreate(blinkenTask, "blinkenTask", 256, NULL, 2, NULL);
+    //xTaskCreate(blinkenRegisterTask, "blinkenRegisterTask", 256, NULL, 2, NULL);
+
     xTaskCreate(task_blink_i2c, "task_blink_i2c", 2048, NULL, 2, NULL);
     
-    //xTaskCreate(blinkenRegisterTask, "blinkenRegisterTask", 256, NULL, 2, NULL);
+    // xTaskCreate(task_ota_setup, "task_ota_setup", 2048, NULL, 2, NULL);
 }
