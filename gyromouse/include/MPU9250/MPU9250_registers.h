@@ -24,7 +24,7 @@
 #define MPU9250_REG_CONFIG              0x1A /* R/W [ 7=_ 6=FIFO_MODE 5:3=EXT_SYNC_SET[2:0] 2:0=DLPF_CFG[2:0] */
 #define MPU9250_REG_GYRO_CONFIG         0x1B /* R/W [ 7=XGYRO_Ct_en 6=YGYRO_Ct_en 5=ZGYRO_Ct_en 4:3=GYRO_FS_SEL[1:0] 2=_ 1:0=FCHOICE_B[1:0] ] */
 #define MPU9250_REG_ACCEL_CONFIG        0x1C /* R/W [ 7=ax_st_en 6=ay_st_en 5=az_st_en 4:3=ACCEL_FS_SEL[1:0] 2:0=_ ] */
-#define MPU9250_REG_ACCEL_CONFIG        0x1D /* R/W [ 7:4=_ 3:2=ACCEL_FCHOICE_B[1:0] 1:0=A_DLPF_CFG[1:0] ] */
+#define MPU9250_REG_ACCEL_CONFIG_2      0x1D /* R/W [ 7:4=_ 3:2=ACCEL_FCHOICE_B[1:0] 1:0=A_DLPF_CFG[1:0] ] */
 #define MPU9250_REG_LP_ACCEL_ODR        0x1E /* R/W [ 7:4=_ 3:0=Lposc_clksel[3:0] ] */
 
 #define MPU9250_REG_FIFO_EN             0x23 /* R/W [ 7=TEMP_FIFO_EN 6=GYRO_XO_UT 5=GYRO_YO_UT 4=GYRO_ZO_UT 3=ACCEL 2=SLV2 1=SLV1 0=SLV0 ] */
@@ -57,4 +57,6 @@
 #define MPU9250_REG_ZA_OFFSET_H         0x7D /* R/W ZA_OFFS [14:7] */
 #define MPU9250_REG_ZA_OFFSET_L         0x7E /* R/W ZA_OFFS [6:0] - */
 
+// MPU9250 specifics
+#define MPU9250_WHOAMI_EXPECTED_VALUE   0x71
 
