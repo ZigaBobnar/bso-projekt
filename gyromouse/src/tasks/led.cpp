@@ -11,8 +11,8 @@ void task_led_blink(void *pvParameters) {
 
     while(1) {
         gpio_write(gpio, 1);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(300 / portTICK_PERIOD_MS);
         gpio_write(gpio, 0);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(300 / portTICK_PERIOD_MS);
     }
 }

@@ -1,7 +1,6 @@
-#pragma once
-
 #include "device/i2c.hpp"
 
+#include <esp/gpio.h>
 #include <stdio.h>
 
 I2CBus::I2CBus(uint8_t bus_id, uint8_t scl_pin_number, uint8_t sda_pin_number) : bus_id(bus_id), scl_pin(scl_pin_number), sda_pin(sda_pin_number) {
@@ -29,23 +28,24 @@ int I2CBus::write(uint8_t address, const uint8_t* register_addresses, const uint
     return result;
 }
 
-void I2CBus::lock() {
+inline void I2CBus::lock() {
     xSemaphoreTake(bus_mutex, portMAX_DELAY);
 }
 
-void I2CBus::unlock() {
+inline void I2CBus::unlock() {
     xSemaphoreGive(bus_mutex);
 }
 
-void I2CBus::init_nolock() {
+inline void I2CBus::init_nolock() {
     i2c_init(bus_id, scl_pin, sda_pin, I2C_FREQ_100K);
+    gpio_enable(SCL_PIN, GPIO_OUTPUT);
 }
 
-void I2CBus::read_nolock(uint8_t address, const uint8_t* register_addresses, uint8_t* data_out_buffer, uint8_t length) {
+inline void I2CBus::read_nolock(uint8_t address, const uint8_t* register_addresses, uint8_t* data_out_buffer, uint8_t length) {
     i2c_slave_read(bus_id, address, register_addresses, data_out_buffer, length);
 }
 
-int I2CBus::write_nolock(uint8_t address, const uint8_t* register_addresses, const uint8_t* data_in_buffer, uint8_t length) {
+inline int I2CBus::write_nolock(uint8_t address, const uint8_t* register_addresses, const uint8_t* data_in_buffer, uint8_t length) {
     return i2c_slave_write(bus_id, address, register_addresses, data_in_buffer, length);
 }
 
@@ -84,21 +84,18 @@ bool I2CDevice::write_byte(const uint8_t register_address, const uint8_t data) {
 }
 
 bool I2CDevice::write_byte(const uint8_t data) {
-    bool result;
     lock();
-    printf("Bus: %x\n\n", bus);
-    result = bus.write(address, NULL, &data, 1);
-    printf("Bus: %x done\n\n", bus);
+    bool result = bus.write(address, NULL, &data, 1);
     unlock();
 
     return result == 0;
 }
 
-void I2CDevice::lock() {
+inline void I2CDevice::lock() {
     xSemaphoreTake(device_mutex, portMAX_DELAY);
 }
 
-void I2CDevice::unlock() {
+inline void I2CDevice::unlock() {
     xSemaphoreGive(device_mutex);
 }
 

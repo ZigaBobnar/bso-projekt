@@ -1,6 +1,6 @@
 PROGRAM=gyromouse
 EXTRA_COMPONENTS = extras/i2c extras/rboot-ota ../../gyromouse/components/RF24
-PROGRAM_SRC_DIR=src src/device
+PROGRAM_SRC_DIR=src src/device src/tasks
 # ESPPORT=/dev/ttyUSB0
 # ESPPORT=/dev/ttyS0
 # ESPTOOL=esptool.py

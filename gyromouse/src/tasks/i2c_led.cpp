@@ -76,7 +76,7 @@ void task_i2c_blink(void *pvParameters) {
 
         I2C_pcf8574.write_byte(write_command);
 
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(600 / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL);

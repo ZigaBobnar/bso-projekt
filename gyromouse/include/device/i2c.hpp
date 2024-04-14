@@ -45,6 +45,8 @@ class I2CDevice {
 public:
     I2CDevice(I2CBus& bus, uint8_t address);
 
+    inline I2CBus& get_bus() { return bus; }
+
     uint8_t read_byte(const uint8_t register_address);
     uint16_t read_word(const uint8_t high_register_address, const uint8_t low_register_address);
 
