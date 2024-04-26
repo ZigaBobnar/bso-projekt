@@ -13,3 +13,4 @@ screenlog.*
 *.swp
 
 config.h
+include/config.hpp
