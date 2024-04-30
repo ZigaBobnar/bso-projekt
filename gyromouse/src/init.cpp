@@ -9,12 +9,18 @@
 #include "common.hpp"
 #include "config.hpp"
 
+
+// Default state, can be overriden with console commands
+bool debugging_enabled = false;
+
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
+
+
 void init_wifi() {
-	// struct sdk_station_config config = { .ssid = WIFI_SSID, .password = WIFI_PASSWORD };
 	struct sdk_station_config config;
 	strncpy((char*)config.ssid, WIFI_SSID, 32);
 	strncpy((char*)config.password, WIFI_PASSWORD, 64);
@@ -25,29 +31,48 @@ void init_wifi() {
 	sdk_wifi_station_connect();
 }
 
-/*
- * FreeRTOS Entrypoint
- */
-void user_init(void) {
+void device_hardware_init(void) {
 	// Set up UART
     uart_set_baud(0, 115200);
-	printf("Initialized URAT at 115200 baud\n");
-
+	WRITE_COMMAND("state", "hardware_init_start");
+	WRITE_COMMAND("uart_baud", "115200");
+	
 	// Set up WiFi from configuration
 	// init_wifi();
 	// printf("Initialized WiFi\n");
+	sdk_wifi_set_opmode(NULL_MODE);
 
 	// Set up OTA ftp
 	// ota_tftp_init_server(TFTP_PORT);
 	// printf("Initialized OTA FTP\n");
 
-	// Start tasks
-    size_t blink_task = xTaskCreate(task_led_blink, "led_blink", 256, NULL, 2, NULL);
-	printf("Created led_blink task: 0x%x\n", blink_task);
-    size_t i2c_blink_task = xTaskCreate(task_i2c_blink, "i2c_blink", 2048, NULL, 2, NULL);
-	printf("Created i2c_blink task: 0x%x\n", i2c_blink_task);
-    size_t i2c_gyro_task = xTaskCreate(task_i2c_gyro, "i2c_gyro", 256, NULL, 2, NULL);
-	printf("Created i2c_gyro task: 0x%x\n", i2c_gyro_task);
+	// Start device drivers tasks
+	xTaskCreate(task_device_io_leds_update, "io_leds_update", 256, NULL, 16, NULL);
+	xTaskCreate(task_device_io_full_update, "io_full_update", 256, NULL, 16, NULL);
+	xTaskCreate(task_device_imu_update, "imu_update", 512, NULL, 16, NULL);
+
+	WRITE_COMMAND("state", "hardware_init_end");
+}
+
+/*
+ * FreeRTOS Entrypoint
+ */
+void user_init(void) {
+	device_hardware_init();
+
+	WRITE_COMMAND("state", "init_user_start");
+    
+	// xTaskCreate(task_led_blink_invert, "led_blink_invert", 256, NULL, 2, NULL);
+    // xTaskCreate(task_led_blink_heartbeat, "led_blink_heartbeat", 256, NULL, 2, NULL);
+    // xTaskCreate(task_led_row_counter, "led_row_counter", 256, NULL, 2, NULL);
+	xTaskCreate(task_buttons_toggle_leds, "buttons_toggle_leds", 256, NULL, 2, NULL);
+	xTaskCreate(task_buttons_write_console, "buttons_write_console", 256, NULL, 2, NULL);
+	xTaskCreate(task_serial_commands, "serial_commands", 512, NULL, 2, NULL);
+
+    xTaskCreate(task_nrf_transmitter, "nrf_transmitter", 256, NULL, 2, NULL);
+    // xTaskCreate(task_nrf_receiver, "nrf_receiver", 256, NULL, 2, NULL);
+
+	WRITE_COMMAND("state", "init_user_end");
 }
 
 #ifdef	__cplusplus

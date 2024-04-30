@@ -1,6 +1,9 @@
 #pragma once
 
+#include "common.hpp"
 #include <stdint.h>
+#include <FreeRTOS.h>
+#include <task.h>
 
 /*
  * Application cenrtric driver for nRF24 radio module.
@@ -27,6 +30,8 @@
 class RF24;
 
 class NRF24 {
+// public:
+//     NRF24(uint8_t chip_enable_pin, uint8_t chip_select_pin, uint8_t spi_bus_id);
 public:
     NRF24(const int spi_clock_pin, const int chip_select_pin, const int chip_enable_pin);
 
@@ -45,10 +50,11 @@ private:
     int chip_select_pin;
     int chip_enable_pin;
     int channel;
+    // uint8_t chip_enable_pin;
+    // uint8_t chip_select_pin;
+    // uint8_t spi_bus_id;
 
     RF24 radio;
-
-
 
 
     // void init();

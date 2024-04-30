@@ -1,7 +1,9 @@
-#include "device/i2c.hpp"
+#include "device/drivers/i2c.hpp"
 
 #include <esp/gpio.h>
 #include <stdio.h>
+
+#include "device/io.hpp"
 
 I2CBus::I2CBus(uint8_t bus_id, uint8_t scl_pin_number, uint8_t sda_pin_number) : bus_id(bus_id), scl_pin(scl_pin_number), sda_pin(sda_pin_number) {
     bus_mutex = xSemaphoreCreateMutex();
@@ -10,17 +12,42 @@ I2CBus::I2CBus(uint8_t bus_id, uint8_t scl_pin_number, uint8_t sda_pin_number) :
 
 void I2CBus::init() {
     lock();
+
+    // io_manager.lock(scl_pin);
+    
     init_nolock();
+
+    enabled = true;
+    unlock();
+}
+
+bool I2CBus::is_enabled() {
+    return enabled;
+}
+
+void I2CBus::disable() {
+    lock();
+    DEBUG_COMMAND("debug", "I2CBus::disable");
+    enabled = false;
+    // io_manager.unlock(scl_pin);
     unlock();
 }
 
 void I2CBus::read(uint8_t address, const uint8_t* register_addresses, uint8_t* data_out_buffer, uint8_t length) {
+    if (!is_enabled()) {
+        return;
+    }
+
     lock();
     read_nolock(address, register_addresses, data_out_buffer, length);
     unlock();
 }
 
 int I2CBus::write(uint8_t address, const uint8_t* register_addresses, const uint8_t* data_in_buffer, uint8_t length) {
+    if (!is_enabled()) {
+        return -1;
+    }
+
     lock();
     int result = write_nolock(address, register_addresses, data_in_buffer, length);
     unlock();
@@ -29,16 +56,20 @@ int I2CBus::write(uint8_t address, const uint8_t* register_addresses, const uint
 }
 
 inline void I2CBus::lock() {
+    // i2c_spi_switch.reserve_i2c();
     xSemaphoreTake(bus_mutex, portMAX_DELAY);
 }
 
 inline void I2CBus::unlock() {
     xSemaphoreGive(bus_mutex);
+    // i2c_spi_switch.release_i2c();
 }
 
 inline void I2CBus::init_nolock() {
+    DEBUG_COMMAND("debug", "I2CBus::init[bus_id=%d, scl=%d, sda=%d]", bus_id, scl_pin, sda_pin);
+
     i2c_init(bus_id, scl_pin, sda_pin, I2C_FREQ_100K);
-    gpio_enable(SCL_PIN, GPIO_OUTPUT);
+    gpio_enable(scl_pin, GPIO_OUTPUT);
 }
 
 inline void I2CBus::read_nolock(uint8_t address, const uint8_t* register_addresses, uint8_t* data_out_buffer, uint8_t length) {
@@ -63,6 +94,10 @@ uint8_t I2CDevice::read_byte(const uint8_t register_address) {
     return data;
 }
 
+uint8_t I2CDevice::read_byte() {
+    return read_byte(0);
+}
+
 uint16_t I2CDevice::read_word(const uint8_t high_register_address, const uint8_t low_register_address) {
     uint8_t data[2];
     lock();
@@ -73,6 +108,12 @@ uint16_t I2CDevice::read_word(const uint8_t high_register_address, const uint8_t
     unlock();
 
     return (uint16_t)data[0] << 8 | data[1];
+}
+
+void I2CDevice::read_bytes(const uint8_t register_start_address, uint8_t count, uint8_t* buffer_out) {
+    lock();
+    bus.read(address, &register_start_address, buffer_out, count);
+    unlock();
 }
 
 bool I2CDevice::write_byte(const uint8_t register_address, const uint8_t data) {
@@ -92,15 +133,18 @@ bool I2CDevice::write_byte(const uint8_t data) {
 }
 
 inline void I2CDevice::lock() {
+    // i2c_spi_switch.reserve_i2c();
     xSemaphoreTake(device_mutex, portMAX_DELAY);
 }
 
 inline void I2CDevice::unlock() {
     xSemaphoreGive(device_mutex);
+    // i2c_spi_switch.release_i2c();
 }
 
 I2CBus I2C_bus0(I2C_BUS, SCL_PIN, SDA_PIN);
 
 I2CDevice I2C_pcf8574(I2C_bus0, 0x38);
 I2CDevice I2C_bmp280(I2C_bus0, 0x76);
-I2CDevice I2C_mpu9250(I2C_bus0, 0x68);
+I2CDevice I2C_mpu9255(I2C_bus0, 0x68);
+I2CDevice I2C_ak8963(I2C_bus0, 0x0C);

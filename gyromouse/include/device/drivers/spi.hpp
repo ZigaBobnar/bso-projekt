@@ -6,6 +6,7 @@
  * This is so multiple tasks cannot interfere with each other when they try to send data to the devices on same bus.
  */
 
+#include "common.hpp"
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <spi/spi.h>
