@@ -81,6 +81,80 @@ inline int I2CBus::write_nolock(uint8_t address, const uint8_t* register_address
 }
 
 
+
+I2CDeviceTransaction::I2CDeviceTransaction(I2CDevice& device) : device(device) {
+    begin();
+}
+
+I2CDeviceTransaction::~I2CDeviceTransaction() {
+    finish();
+}
+
+void I2CDeviceTransaction::begin() {
+    if (!locked) {
+        locked = true;
+        device.lock();
+        device.bus.lock();
+    }
+}
+
+void I2CDeviceTransaction::finish() {
+    if (locked) {
+        locked = false;
+        device.unlock();
+        device.bus.unlock();
+    }
+}
+
+uint8_t I2CDeviceTransaction::read_byte(const uint8_t register_address) {
+    uint8_t data;
+    begin();
+    device.bus.read_nolock(device.address, &register_address, &data, 1);
+
+    return data;
+}
+
+uint8_t I2CDeviceTransaction::read_byte() {
+    return read_byte(0);
+}
+
+uint16_t I2CDeviceTransaction::read_word(const uint8_t high_register_address, const uint8_t low_register_address) {
+    uint8_t data[2];
+    begin();
+    device.bus.read_nolock(device.address, &high_register_address, data, 1);
+    device.bus.read_nolock(device.address, &low_register_address, data + 1, 1);
+
+    return (uint16_t)data[0] << 8 | data[1];
+}
+
+void I2CDeviceTransaction::read_bytes(const uint8_t register_start_address, uint8_t count, uint8_t* buffer_out) {
+    begin();
+    device.bus.read(device.address, &register_start_address, buffer_out, count);
+}
+
+bool I2CDeviceTransaction::write_byte(const uint8_t register_address, const uint8_t data) {
+    begin();
+    int result = device.bus.write(device.address, &register_address, &data, 1);
+
+    return result == 0;
+}
+
+bool I2CDeviceTransaction::write_byte(const uint8_t data) {
+    begin();
+    bool result = device.bus.write(device.address, NULL, &data, 1);
+    
+    return result == 0;
+}
+
+bool I2CDeviceTransaction::write_bytes(const uint8_t register_start_address, uint8_t count, const uint8_t* buffer_in) {
+    begin();
+    bool result = device.bus.write(device.address, &register_start_address, buffer_in, count);
+
+    return result == 0;
+}
+
+
+
 I2CDevice::I2CDevice(I2CBus& bus, uint8_t address) : bus(bus), address(address) {
     device_mutex = xSemaphoreCreateMutex();
 }
@@ -130,6 +204,18 @@ bool I2CDevice::write_byte(const uint8_t data) {
     unlock();
 
     return result == 0;
+}
+
+bool I2CDevice::write_bytes(const uint8_t register_start_address, uint8_t count, const uint8_t* buffer_in) {
+    lock();
+    bool result = bus.write(address, &register_start_address, buffer_in, count);
+    unlock();
+
+    return result == 0;
+}
+
+I2CDeviceTransaction I2CDevice::begin_transaction() {
+    return I2CDeviceTransaction(*this);
 }
 
 inline void I2CDevice::lock() {

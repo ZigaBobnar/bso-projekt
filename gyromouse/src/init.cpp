@@ -49,7 +49,7 @@ void device_hardware_init(void) {
 	// Start device drivers tasks
 	xTaskCreate(task_device_io_leds_update, "io_leds_update", 256, NULL, 16, NULL);
 	xTaskCreate(task_device_io_full_update, "io_full_update", 256, NULL, 16, NULL);
-	xTaskCreate(task_device_imu_update, "imu_update", 512, NULL, 16, NULL);
+	xTaskCreate(task_device_imu_update, "imu_update", 1024, NULL, 16, NULL);
 
 	WRITE_COMMAND("state", "hardware_init_end");
 }

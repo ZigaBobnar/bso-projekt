@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "device/utils/xyzfloat.hpp"
 #include "device/utils/initializable.hpp"
+#include "device/drivers/mpu925x.hpp"
 
 /**
  * IMU - Intertial measurment unit high level driver
@@ -23,7 +24,7 @@ public:
     
     XYZFloat accelerometer;
     XYZFloat gyroscope;
-    XYZFloat magnetometer;
+    MPUMagnetometerReading magnetometer;
     float temperature;
 };
 

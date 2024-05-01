@@ -44,6 +44,30 @@ private:
     int write_nolock(uint8_t address, const uint8_t* register_addresses, const uint8_t* data_in_buffer, uint8_t length);
 
     friend class I2CDevice;
+    friend class I2CDeviceTransaction;
+};
+
+class I2CDeviceTransaction {
+public:
+    I2CDeviceTransaction(I2CDevice& device);
+    ~I2CDeviceTransaction();
+
+    void begin();
+    void finish();
+
+    uint8_t read_byte();
+    uint8_t read_byte(const uint8_t register_address);
+    uint16_t read_word(const uint8_t high_register_address, const uint8_t low_register_address);
+    void read_bytes(const uint8_t register_start_address, uint8_t count, uint8_t* buffer_out);
+
+    bool write_byte(const uint8_t register_address, const uint8_t data);
+    bool write_byte(const uint8_t data);
+    bool write_bytes(const uint8_t register_start_address, uint8_t count, const uint8_t* buffer_in);
+
+private:
+    I2CDevice& device;
+    bool locked;
+    // bool is_read = false;
 };
 
 class I2CDevice {
@@ -59,6 +83,9 @@ public:
 
     bool write_byte(const uint8_t register_address, const uint8_t data);
     bool write_byte(const uint8_t data);
+    bool write_bytes(const uint8_t register_start_address, uint8_t count, const uint8_t* buffer_in);
+
+    I2CDeviceTransaction begin_transaction();
 
 private:
     I2CBus& bus;
@@ -67,6 +94,8 @@ private:
     
     void lock();
     void unlock();
+
+    friend class I2CDeviceTransaction;
 };
 
 extern I2CBus I2C_bus0;

@@ -6,6 +6,8 @@
 
 MPU925x mpu(I2C_mpu9255, I2C_ak8963);
 
+uint8_t fifo_queue[512];
+
 void IMU::init() {
     if (is_initialized()) {
         // Only initialize once.
@@ -51,6 +53,13 @@ void IMU::update() {
     gyroscope = mpu.get_gyroscope_values();
     magnetometer = mpu.get_magnetometer_values();
     temperature = mpu.get_temperature_value();
+
+    uint16_t fifo_count = mpu.get_fifo_count();
+    if (fifo_count > 0) {
+        WRITE_COMMAND("error", "IMU::update: FIFO count: %d", fifo_count);
+
+        mpu.read_fifo_bytes(fifo_count, fifo_queue);
+    }
 }
 
 IMU imu;

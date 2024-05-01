@@ -40,7 +40,13 @@ void task_device_imu_update(void *pvParameters) {
         WRITE_COMMAND("dt", "%d", get_time_delta(last_update_time, update_time));
         WRITE_COMMAND("accel", "%f,%f,%f", imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z);
         WRITE_COMMAND("gyro", "%f,%f,%f", imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z);
-        WRITE_COMMAND("mag", "%f,%f,%f", imu.magnetometer.x, imu.magnetometer.y, imu.magnetometer.z);
+        WRITE_COMMAND("mag", "%f,%f,%f", imu.magnetometer.values.x, imu.magnetometer.values.y, imu.magnetometer.values.z);
+        if (!imu.magnetometer.is_16_bit) {
+            WRITE_COMMAND("error", "Magnetometer not in 16-bit mode");
+        }
+        if (imu.magnetometer.had_overflow) {
+            WRITE_COMMAND("error", "Magnetometer overflowed");
+        }
         WRITE_COMMAND("temp", "%f", imu.temperature);
         WRITE_COMMAND("update", "done");
 
