@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include <RF24.h>
+#include <../components/RF24/RF24.h>
 
 /*
  * Application cenrtric driver for nRF24 radio module.

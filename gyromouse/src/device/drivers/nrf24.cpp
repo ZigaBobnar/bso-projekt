@@ -34,11 +34,11 @@ uint8_t NRF24::read_byte() {
     return data;
 }
 
-NRF24::~NRF24() {
-    SPIReservation reservation = comms_mux.reserve_spi();
+// NRF24::~NRF24() {
+//     SPIReservation reservation = comms_mux.reserve_spi();
 
-    radio.powerDown();
-}
+//     radio.powerDown();
+// }
 
 
 void NRF24::pause_radio() {
