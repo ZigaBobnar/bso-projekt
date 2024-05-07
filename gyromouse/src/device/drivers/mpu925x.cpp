@@ -37,29 +37,30 @@ void MPU925x::init() {
     hardware_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
-    write_register(MPU925x_Register::PWR_MGMT_1, 0x00);
+    select_clock_source(MPUClockSource::Internal_20MHz);
     vTaskDelay(10 / portTICK_PERIOD_MS);
-    write_register(MPU925x_Register::PWR_MGMT_1, 0x01);
+    select_clock_source(MPUClockSource::AutoSelect);
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     write_register(MPU925x_Register::CONFIG, 0x03); // DLPF_CFG = 3
     set_accelerometer_range(accelerometer_range);
     set_gyro_range(gyro_range);
 
-    write_register(MPU925x_Register::SMPLRT_DIV, 0x04);
     // Sample rate = Internal sample rate / (1 + SMPLRT_DIV)
+    // set_samplerate_divider(0x04); // fs = fs_int=1kHz / (1 + div) = 200Hz sample rate
+    set_samplerate_divider(0x10); // fs = fs_int=1kHz / (1 + div) = 50Hz sample rate
 
     // Enable FIFO
-    enable_fifo();
+    // enable_fifo();
     // enable_fifo_module(MPUFifoEnable::Temperature | MPUFifoEnable::GyroX | MPUFifoEnable::GyroY | MPUFifoEnable::GyroZ | MPUFifoEnable::Accelerometer);
     // enable_fifo_module(MPUFifoEnable::Temperature);
-    enable_fifo_module(MPUFifoEnable::Temperature | MPUFifoEnable::Accelerometer);
+    // enable_fifo_module(MPUFifoEnable::Temperature | MPUFifoEnable::Accelerometer);
     
-    set_accelerometer_motion_detection(true, true);
-    set_enabled_interrupts(MPUInterrupt::WakeOnMotion | MPUInterrupt::FifoOverflow | MPUInterrupt::RawDataReady);
+    // set_accelerometer_motion_detection(true, true);
+    // set_enabled_interrupts(MPUInterrupt::WakeOnMotion | MPUInterrupt::FifoOverflow | MPUInterrupt::RawDataReady);
 
     // Initialize AK8963
-    // enable_i2c_bypass();
+    enable_i2c_bypass();
     magnetometer_soft_reset();
     vTaskDelay(100 / portTICK_PERIOD_MS);
     // magnetometer_set_mode_continuous_measurement_8Hz();
@@ -253,6 +254,35 @@ void MPU925x::set_gyro_range(MPUGyroRange range) {
     write_register(MPU925x_Register::GYRO_CONFIG, gyro_config);
 }
 
+// void MPU925x::set_gyro_bandwidth(MPUGyroFilterBandwidth bandwidth) {
+
+// }
+
+// MPUGyroFilterBandwidth MPU925x::get_gyro_bandwidth() {
+//     uint8_t dlpf = read_register(MPU925x_Register::CONFIG) & 0b00000111;
+//     uint8_t fchoice_b = read_register(MPU925x_Register::GYRO_CONFIG) & 0b00000011;
+//     uint8_t fchoice = ~fchoice_b & 0b00000011;
+
+//     if (fchoice & 1 << 0) {
+//         return MPUGyroFilterBandwidth::Bandwidth_8800_Hz_Fs_32kHz;
+//     } else if (fchoice & 1 << 1) {
+//         return MPUGyroFilterBandwidth::Bandwidth_3600_Hz_Fs_32kHz;
+//     }
+
+
+
+    
+// }
+
+// void MPU925x::set_accelerometer_bandwidth(MPUAccelerometerFilterBandwidth bandwidth) {
+
+// }
+
+// MPUAccelerometerFilterBandwidth MPU925x::get_accelerometer_bandwidth() {
+
+// }
+
+
 MPUFifoEnable MPU925x::get_fifo_enabled_modules() {
     return static_cast<MPUFifoEnable>(read_register(MPU925x_Register::FIFO_EN));
 }
@@ -331,6 +361,10 @@ void MPU925x::gyros_standby_mode() {
 
 void MPU925x::wake_gyros() {
     write_register(MPU925x_Register::PWR_MGMT_1, read_register(MPU925x_Register::PWR_MGMT_1) & ~(1 << 4));
+}
+
+void MPU925x::select_clock_source(MPUClockSource source) {
+    write_register(MPU925x_Register::PWR_MGMT_1, (read_register(MPU925x_Register::PWR_MGMT_1) & 0b11111000) | (uint8_t)source);
 }
 
 XYZBool MPU925x::accelerometer_enabled_axis() {

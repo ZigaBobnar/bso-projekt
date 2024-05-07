@@ -11,6 +11,8 @@ void task_device_io_leds_update(void *pvParameters) {
         io.update_leds();
         vTaskDelay(LEDS_UPDATE_INTERVAL / portTICK_PERIOD_MS);
     }
+
+    vTaskDelete(NULL);
 }
 
 void task_device_io_full_update(void *pvParameters) {
@@ -22,4 +24,6 @@ void task_device_io_full_update(void *pvParameters) {
         io.update_full();
         vTaskDelay(BUTTONS_UPDATE_INTERVAL / portTICK_PERIOD_MS);
     }
+
+    vTaskDelete(NULL);
 }

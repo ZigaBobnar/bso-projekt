@@ -119,6 +119,30 @@ enum class MPUGyroRange : uint8_t {
     Gyro_2000_DegPerSec = 0x03,
 };
 
+enum class MPUAccelerometerFilterBandwidth {
+    Bandwidth_1046_Hz_Fs_4kHz,
+    Bandwidth_218_Hz_Fs_1kHz,
+    Bandwidth_99_Hz_Fs_1kHz,
+    Bandwidth_44_Hz_Fs_1kHz,
+    Bandwidth_21_Hz_Fs_1kHz,
+    Bandwidth_10_Hz_Fs_1kHz,
+    Bandwidth_5_Hz_Fs_1kHz,
+    Bandwidth_420_Hz_Fs_1kHz,
+};
+
+enum class MPUGyroFilterBandwidth {
+    Bandwidth_8800_Hz_Fs_32kHz,
+    Bandwidth_3600_Hz_Fs_32kHz,
+    Bandwidth_250_Hz_Fs_8kHz,
+    Bandwidth_184_Hz_Fs_1kHz,
+    Bandwidth_92_Hz_Fs_1kHz,
+    Bandwidth_41_Hz_Fs_1kHz,
+    Bandwidth_20_Hz_Fs_1kHz,
+    Bandwidth_10_Hz_Fs_1kHz,
+    Bandwidth_5_Hz_Fs_1kHz,
+    Bandwidth_3600_Hz_Fs_8kHz,
+};
+
 enum class MPUFifoEnable : uint8_t {
     Temperature = 1 << 7,
     GyroX = 1 << 6,
@@ -155,12 +179,17 @@ constexpr enum MPUInterrupt operator~(enum MPUInterrupt a) {
     return static_cast<enum MPUInterrupt>(~static_cast<uint8_t>(a));
 }
 
+enum class MPUClockSource : uint8_t {
+    Internal_20MHz = 0x00,
+    AutoSelect = 0x01,
+    Stop = 0x07,
+};
+
 struct MPUMagnetometerReading {
     XYZFloat values;
     bool is_16_bit;
     bool had_overflow;
 };
-
 
 class MPU925x : Initializable {
 public:
@@ -170,26 +199,6 @@ public:
 
     const uint8_t MPU9250_DEFAULT_ADDRESS = 0x68;
     const uint8_t AK8963_DEFAULT_ADDRESS = 0x0C;
-
-    // enum class AccelerometerBandwidth : uint8_t {
-    //     Accel_BW_218_1_Hz = 0x01,
-    //     Accel_BW_99_Hz = 0x02,
-    //     Accel_BW_44_8_Hz = 0x03,
-    //     Accel_BW_21_2_Hz = 0x04,
-    //     Accel_BW_10_2_Hz = 0x05,
-    //     Accel_BW_5_05_Hz = 0x06,
-    //     Accel_BW_420_Hz = 0x07,
-    // };
-    
-    // enum class GyroBandwidth : uint8_t {
-    //     Gyro_BW_250_Hz = 0x00,
-    //     Gyro_BW_184_Hz = 0x01,
-    //     Gyro_BW_92_Hz = 0x02,
-    //     Gyro_BW_41_Hz = 0x03,
-    //     Gyro_BW_20_Hz = 0x04,
-    //     Gyro_BW_10_Hz = 0x05,
-    //     Gyro_BW_5_Hz = 0x06,
-    // };
 
     const uint8_t Config_FIFOMode_OverwriteWhenFull = 1 << 6;
     const uint8_t Config_FIFOMode_StopWhenFull = 0 << 6;
@@ -223,8 +232,9 @@ public:
     void set_gyroscope_offsets(XYZInt16 offsets);
     void set_accelerometer_offsets(XYZInt16 offsets);
 
+    // Sample rate = Internal sample rate / (1 + SMPLRT_DIV)
     uint8_t get_sample_rate_divider();
-    void set_samplerate_divider(uint8_t divider);
+    void set_samplerate_divider(uint8_t divider); // also FIFO sample rate
 
     uint8_t get_configuration();
     void set_configuration(uint8_t config);
@@ -233,6 +243,11 @@ public:
 
     void set_accelerometer_range(MPUAccelerometerRange range);
     void set_gyro_range(MPUGyroRange range);
+
+    void set_gyro_bandwidth(MPUGyroFilterBandwidth bandwidth);
+    MPUGyroFilterBandwidth get_gyro_bandwidth();
+    void set_accelerometer_bandwidth(MPUAccelerometerFilterBandwidth bandwidth);
+    MPUAccelerometerFilterBandwidth get_accelerometer_bandwidth();
 
     MPUFifoEnable get_fifo_enabled_modules();
     bool is_fifo_module_enabled(MPUFifoEnable module);
@@ -259,6 +274,7 @@ public:
     void wake_up();
     void gyros_standby_mode();
     void wake_gyros();
+    void select_clock_source(MPUClockSource source);
     
     XYZBool accelerometer_enabled_axis();
     XYZBool gyroscope_enabled_axis();
