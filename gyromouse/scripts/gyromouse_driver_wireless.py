@@ -115,6 +115,11 @@ class GyroMouseSerial:
                     mouse.press('right')
                 else:
                     mouse.release('right')
+        elif command == '$mouse':
+            # The move action is immediate, without processing
+            print('Mouse: Move', value)
+            [x, y] = value.split(',')
+            mouse.move(float(x)/100, float(y)/100, absolute=False)
         elif command == '$dt':
             self.measurment.mcu_delta = float(value) / 1000
         elif command == '$accel':
@@ -165,7 +170,7 @@ class GyroMouseSerial:
         elif command == '$info':
             self.print(f'\033[1;34mInfo: {value}\033[0m')
         elif command == '$error':
-            self.print(f'\033[1;31mError: {value}\033[0m')
+            print(f'\033[1;31mError: {value}\033[0m')
         elif command == '$debug':
             if value == 'IO::_update_module_leds':
                 return
@@ -670,12 +675,12 @@ try:
 
         frames += 1
 except KeyboardInterrupt:
-    print('\033[20B\nExiting...')
+    print('\033[50B\nExiting...')
     gyro_mouse.serial.close()
 except serial.SerialException as e:
-    print('\033[20B\nSerial error, either device was disconnected or is in use by another program.', e)
+    print('\033[50B\nSerial error, either device was disconnected or is in use by another program.', e)
     gyro_mouse.serial.close()
 except Exception as e:
-    print('\033[20B\n', e)
+    print('\033[50B\n', e)
     gyro_mouse.serial.close()
     raise e
