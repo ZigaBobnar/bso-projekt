@@ -9,11 +9,6 @@
 #include "common.hpp"
 #include <FreeRTOS.h>
 #include <semphr.h>
-#include <i2c/i2c.h>
-
-#define I2C_BUS 0
-#define SCL_PIN 14
-#define SDA_PIN 12
 
 class I2CDevice;
 

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <FreeRTOS.h>
 #include <task.h>
+#include <RF24.h>
 
 /*
  * Application cenrtric driver for nRF24 radio module.
@@ -35,11 +36,11 @@ class NRF24 {
 public:
     NRF24(const int spi_clock_pin, const int chip_select_pin, const int chip_enable_pin);
 
-    void initialize_module(const int channel);
+    void init(const int channel);
 
-    // void write_byte(uint8_t data);
+    void write_byte(uint8_t data);
 
-    // uint8_t read_byte();
+    uint8_t read_byte();
 
     void pause_radio();
 
@@ -129,3 +130,5 @@ private:
     // }
 
 };
+
+extern NRF24 nrf24;

@@ -1,10 +1,40 @@
 #pragma once
 
-#include <FreeRTOS.h>
 #include <stdint.h>
 #include <stdio.h>
 
+#include <FreeRTOS.h>
+#include <task.h>
+#include <semphr.h>
+
 #include "config.hpp"
+
+// Board pin layout
+#define BOARD_PIN_SPI_SCK       14
+#define BOARD_PIN_SPI_MISO      12
+#define BOARD_PIN_SPI_MOSI      13
+#define BOARD_PIN_I2C_SCL       14
+#define BOARD_PIN_I2C_SDA       12
+#define BOARD_PIN_UART_TX       1
+#define BOARD_PIN_UART_RX       3
+#define BOARD_PIN_SYN115_TXD    4
+#define BOARD_PIN_SYN470R_RXD   5
+// #define BOARD_PIN_SYN470R_RXD   15
+#define BOARD_PIN_NRF24_CS      0
+#define BOARD_PIN_NRF24_CE      2 /* Over jumper J7, pulled high by default */
+#define BOARD_PIN_NRF24_IRQ     4 /* Shared with TXD over unpopulated jumper J6 */
+
+#define BOARD_I2C_BUS 0
+#define BOARD_SPI_BUS 0
+
+// Addresses
+#define BOARD_I2C_ADDRESS_PCF8574   0x38
+#define BOARD_I2C_ADDRESS_BMP280    0x76
+#define BOARD_I2C_ADDRESS_MPU9255   0x68
+#define BOARD_I2C_ADDRESS_AK8963    0x0C
+
+
+
 
 // Hardware properties
 #define BUTTONS_COUNT 4 /* All 4 buttons are on PCF8574 */
@@ -16,7 +46,9 @@
 #define LEDS_UPDATE_INTERVAL 15
 #define BUTTONS_UPDATE_INTERVAL 30
 
-#define IMU_UPDATE_INTERVAL 10
+// #define IMU_UPDATE_INTERVAL 10
+// 50Hz ==> 20ms
+#define IMU_UPDATE_INTERVAL 20
 
 
 extern bool imu_paused;
@@ -37,6 +69,12 @@ void task_serial_commands(void *pvParameters);
 
 void task_nrf_transmitter(void *pvParameters);
 // void task_nrf_receiver(void *pvParameters);
+
+struct TaskHandles {
+    TaskHandle_t ask_syn_transmitter = nullptr;
+};
+
+extern struct TaskHandles task_handles;
 
 // Common macros
 

@@ -1,9 +1,7 @@
 #include "device/drivers/i2c.hpp"
 
 #include <esp/gpio.h>
-#include <stdio.h>
-
-#include "device/io.hpp"
+#include <i2c/i2c.h>
 
 I2CBus::I2CBus(uint8_t bus_id, uint8_t scl_pin_number, uint8_t sda_pin_number) : bus_id(bus_id), scl_pin(scl_pin_number), sda_pin(sda_pin_number) {
     bus_mutex = xSemaphoreCreateMutex();
@@ -228,9 +226,9 @@ inline void I2CDevice::unlock() {
     // i2c_spi_switch.release_i2c();
 }
 
-I2CBus I2C_bus0(I2C_BUS, SCL_PIN, SDA_PIN);
+I2CBus I2C_bus0(BOARD_I2C_BUS, BOARD_PIN_I2C_SCL, BOARD_PIN_I2C_SDA);
 
-I2CDevice I2C_pcf8574(I2C_bus0, 0x38);
-I2CDevice I2C_bmp280(I2C_bus0, 0x76);
-I2CDevice I2C_mpu9255(I2C_bus0, 0x68);
-I2CDevice I2C_ak8963(I2C_bus0, 0x0C);
+I2CDevice I2C_pcf8574(I2C_bus0, BOARD_I2C_ADDRESS_PCF8574);
+I2CDevice I2C_bmp280(I2C_bus0, BOARD_I2C_ADDRESS_BMP280);
+I2CDevice I2C_mpu9255(I2C_bus0, BOARD_I2C_ADDRESS_MPU9255);
+I2CDevice I2C_ak8963(I2C_bus0, BOARD_I2C_ADDRESS_AK8963);
