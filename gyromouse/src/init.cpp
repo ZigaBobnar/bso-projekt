@@ -10,6 +10,7 @@
 #include "config.hpp"
 
 #include "device/drivers/ask_syn.hpp"
+#include "device/drivers/nrf24.hpp"
 
 // Make task_handles available globally
 struct TaskHandles task_handles;
@@ -50,6 +51,8 @@ void device_hardware_init(void) {
 	// Set up OTA ftp
 	// ota_tftp_init_server(TFTP_PORT);
 	// printf("Initialized OTA FTP\n");
+
+	nrf24.init(32);
 
 	ask_syn_transmitter.init();
 
