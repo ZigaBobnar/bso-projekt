@@ -1042,7 +1042,7 @@ bool RF24::write( const void* buf, uint8_t len, const bool multicast )
 	ce(LOW);
 
 	uint8_t status = write_register(NRF_STATUS,_BV(RX_DR) | _BV(TX_DS) | _BV(MAX_RT) );
-printf("RX STATUS: %x \n", status);  // Niko
+// printf("RX STATUS: %x \n", status);  // Niko
 
 
   //Max retries exceeded

@@ -4,16 +4,16 @@ from time import sleep
 import time
 import serial
 import mouse
-import tkinter as tk
+# import Tkinter as tk
 
 import pygame
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
 
-window_root = tk.Tk()
-screen_width = window_root.winfo_screenwidth()
-screen_height = window_root.winfo_screenheight()
+# window_root = tk.Tk()
+screen_width = 1000#window_root.winfo_screenwidth()
+screen_height = 1000#window_root.winfo_screenheight()
 
 useQuat = False
 

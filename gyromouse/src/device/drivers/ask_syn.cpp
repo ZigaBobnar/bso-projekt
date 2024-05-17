@@ -78,6 +78,15 @@ void AskSynTransmitter::send_packet(uint8_t *data, size_t length) {
 
 AskSynTransmitter ask_syn_transmitter(BOARD_PIN_SYN115_TXD);
 
+
+/***
+ * NOTE: Highly inefficient approach as this requires us to preemptively switch to the loop and interrupt other tasks, then accurately switch back to here.
+ * It would probably be better to use timer based solution.
+ * Hardware timer should get enabled whenever there is data packet that needs to be sent, then in hardware interrupt we should ony set the gpio value and increase the position index.
+ * If finished, the timer gets disabled. This means we still need to switch tasks but the interrupt runtime should be much more accurate.
+ * 
+*/
+
 void ask_syn_transmitter_task(void *pvParameters) {
     if (task_handles.ask_syn_transmitter == nullptr) {
         task_handles.ask_syn_transmitter = xTaskGetCurrentTaskHandle();

@@ -2,10 +2,10 @@ from time import sleep
 import serial
 
 
-# port = '/dev/ttyUSB0'
+port = '/dev/ttyUSB0'
 # port = 'COM19'
 # port = 'COM21'
-port = 'COM4'
+# port = 'COM4'
 
 
 serial = serial.Serial(port, 115200, timeout=1)

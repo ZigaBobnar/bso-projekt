@@ -1,3 +1,6 @@
+#ifdef ENABLE_OTA
+#ifdef ENABLE_WIFI
+
 #include "espressif/esp_common.h"
 #include "esp/uart.h"
 #include "FreeRTOS.h"
@@ -96,3 +99,6 @@ void frc1_interrupt_handler(void *arg) {
 	xTaskNotifyFromISR(interrupt_task_handle, pin_num, eSetValueWithOverwrite, &wake_higher_task);
 	portEND_SWITCHING_ISR(wake_higher_task);
 }
+
+#endif
+#endif
