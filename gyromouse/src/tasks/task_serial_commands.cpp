@@ -51,6 +51,15 @@ void task_serial_commands(void *pvParameters) {
                     } else {
                         WRITE_COMMAND("error", "invalid_debug_state %s", state);
                     }
+                } else if (starts_with(input_command_line_buffer, "$mode=")) {
+                    char *mode = &input_command_line_buffer[6];
+                    if (string_equals(mode, "dongle")) {
+                        // WRITE_COMMAND("mode", "normal");
+                    } else if (string_equals(mode, "mouse")) {
+                        // WRITE_COMMAND("mode", "debug");
+                    } else {
+                        WRITE_COMMAND("error", "invalid_mode %s", mode);
+                    }
                 } else if (starts_with(input_command_line_buffer, "$imu_state=")) {
                     char *state = &input_command_line_buffer[11];
                     if (string_equals(state, "start")) {

@@ -18,13 +18,6 @@
 #include "device/drivers/ask_syn.hpp"
 #include "device/wireless_mouse.hpp"
 
-// Make task_handles available globally
-struct TaskHandles task_handles;
-
-
-// Default state, can be overriden with console commands
-bool debugging_enabled = false;
-
 
 #ifdef	__cplusplus
 extern "C" {
@@ -44,141 +37,23 @@ void init_wifi() {
 }
 #endif
 
-void device_hardware_init(void) {
-	// Set up UART
-    uart_set_baud(0, 115200);
-	WRITE_COMMAND("state", "hardware_init_start");
-	WRITE_COMMAND("uart_baud", "115200");
-	
-	#ifdef ENABLE_WIFI
-		// Set up WiFi from configuration
-		init_wifi();
-		printf("Initialized WiFi\n");
-
-		#ifdef ENABLE_OTA
-			// Set up OTA ftp
-			ota_tftp_init_server(TFTP_PORT);
-			printf("Initialized OTA FTP\n");
-		#endif
-	#else
-		sdk_wifi_set_opmode(NULL_MODE);
-	#endif
-
-	wireless_mouse.init(WIRELESS_DEFAULT_RADIO_CHANNEL);
-
-	// ask_syn_transmitter.init();
-
-	// ask_syn_receiver.init();
-	// ask_syn_receiver.resume_interrupt();
-
-	// Start device drivers tasks
-	// xTaskCreate(task_device_io_leds_update, "io_leds_update", 256, NULL, 16, NULL);
-	// xTaskCreate(task_device_io_full_update, "io_full_update", 256, NULL, 16, NULL);
-	// xTaskCreate(task_device_imu_update, "imu_update", 1024, NULL, 16, NULL);
-
-
-
-	WRITE_COMMAND("state", "hardware_init_end");
-}
-
-void task_ask_syn_receive_process(void *pvParameters) {
-	while (true) {
-		while (ask_syn_receiver.has_data()) {
-			uint8_t *data = ask_syn_receiver.get_from_queue();
-			for (int i = 0; i < ASK_SYN_PACKET_LENGTH_BYTES; i++) {
-				WRITE_COMMAND_PARTIAL("ask_rx_data", "[%d]=0x%x", i, (data[i]));
-			}
-			printf("\n");
-		}
-
-		vTaskDelay(10 / portTICK_PERIOD_MS);
-	}
-
-	vTaskDelete(NULL);
-}
-
-// void task_ask_syn_transmit_process(void *pvParameters) {
-// 	char data[17] = " Hello World!";
-
-// 	data[0] = 0b01011010;
-// 	data[1] = 0b10101010;
-// 	data[2] = 0b10101010;
-// 	data[3] = 0b10101010;
-// 	data[4] = 0b10101010;
-// 	data[5] = 0b10101010;
-// 	data[6] = 0b10101010;
-// 	data[7] = 0b10101010;
-// 	data[8] = 0b10101010;
-// 	data[9] = 0b10101010;
-// 	data[10] = 0b10101010;
-// 	data[11] = 0b10101010;
-// 	data[12] = 0b10101010;
-// 	data[13] = 0b10101010;
-// 	data[14] = 0b10101010;
-// 	data[15] = 0b10101010;
-// 	data[16] = 0b10101010;
-
-// 	while (true) {
-// 		vTaskDelay(100 / portTICK_PERIOD_MS);
-// 		if (!ask_syn_transmitter.tx_prefill_buffer_full) {
-// 			WRITE_COMMAND("ask_tx_data", "Hello World!");
-// 			ask_syn_transmitter.send_packet((uint8_t*)data, 4);
-// 		}
-
-// 		vTaskDelay(100 / portTICK_PERIOD_MS);
-// 	}
-
-// 	vTaskDelete(NULL);
-// }
-
-
-
-void task_wireless_mouse_process(void *pvParameters) {
-	while (true) {
-		// WRITE_COMMAND("state", "wireless_mouse_process");
-		wireless_mouse.process_data();
-
-		vTaskDelay(10 / portTICK_PERIOD_MS);
-	}
-
-	vTaskDelete(NULL);
-}
-
-
-void task_watchdog(void *pvParameters) {
-	static TickType_t run_timer = 0;
-	static TickType_t prev_time = 0;
-	run_timer = prev_time = xTaskGetTickCount();
-
-	while (true) {
-		TickType_t current_time = xTaskGetTickCount();
-
-		float diff = ((float)current_time - prev_time) * portTICK_PERIOD_MS/1000;
-		WRITE_COMMAND("watchdog", "alive(diff=%f)", diff);
-		prev_time = current_time;
-
-		vTaskDelayUntil(&run_timer, 5000 / portTICK_PERIOD_MS);
-	}
-}
-
 
 void task_ping(void *pvParameters) {
-	static TickType_t run_timer = 0;
-	// static TickType_t prev_time = 0;
-	run_timer = last_ping_request = xTaskGetTickCount();
+	static TickType_t current_time = 0;
+	current_time = gyromouse.timings.last_ping_request = xTaskGetTickCount();
 
 	while (true) {
-		TickType_t current_time = xTaskGetTickCount();
+		// TickType_t current_time = xTaskGetTickCount();
 
-		float diff = ((float)current_time - last_ping_request) * portTICK_PERIOD_MS/1000;
+		float diff = ((float)current_time - gyromouse.timings.last_ping_request) * portTICK_PERIOD_MS/1000;
 
 		WRITE_COMMAND("ping", "request(diff=%f)", diff);
-		wireless_mouse.switch_to_dongle_mode();
+		gyromouse.mode = GyroMouse::Mode::DONGLE;
 		wireless_mouse.write_packet(WirelessMouseCommand::Ping, nullptr, 0);
 
-		last_ping_request = current_time;
+		gyromouse.timings.last_ping_request = current_time;
 
-		vTaskDelayUntil(&run_timer, 1500 / portTICK_PERIOD_MS);
+		vTaskDelayUntil(&current_time, 1500 / portTICK_PERIOD_MS);
 	}
 }
 
@@ -187,9 +62,64 @@ void task_ping(void *pvParameters) {
  * FreeRTOS Entrypoint
  */
 void user_init(void) {
-	device_hardware_init();
+	// Set up UART
+    uart_set_baud(0, 115200);
+	WRITE_COMMAND("state", "hardware_init_start");
+	WRITE_COMMAND("uart_baud", "115200");
+	
+	WRITE_COMMAND("state", "user_init");
 
-	WRITE_COMMAND("state", "init_user_start");
+	#ifdef ENABLE_WIFI
+		// Set up WiFi from configuration
+		init_wifi();
+		WRITE_COMMAND("wifi", "initialized");
+
+		#ifdef ENABLE_OTA
+			// Set up OTA ftp
+			ota_tftp_init_server(TFTP_PORT);
+			WRITE_COMMAND("OTA", "initialized");
+		#endif
+	#else
+		sdk_wifi_set_opmode(NULL_MODE);
+	#endif
+
+
+
+
+	// Initialize hardware into default state before starting any further tasks
+
+	wireless_mouse.init(WIRELESS_DEFAULT_RADIO_CHANNEL);
+
+	// ask_syn_transmitter.init();
+
+	// ask_syn_receiver.init();
+	// ask_syn_receiver.resume_interrupt();
+
+
+
+
+	// Start the periodic tasks
+
+	xTaskCreate(
+		task_watchdog,
+		"watchdog",
+		256,
+		NULL,
+		tskIDLE_PRIORITY + 6, // Lower priority than the main tasks to see if everything is running
+		&gyromouse.tasks.watchdog);
+
+	xTaskCreate(
+		task_device_imu_update,
+		"device_imu_update",
+		512,
+		NULL,
+		tskIDLE_PRIORITY + 2,
+		&gyromouse.tasks.device_imu_update);
+
+	xTaskCreate(task_device_io_leds_update, "io_leds_update", 256, NULL, 6, NULL);
+	xTaskCreate(task_device_io_full_update, "io_full_update", 256, NULL, 6, NULL);
+	// xTaskCreate(task_device_imu_update, "imu_update", 1024, NULL, 16, NULL);
+
     
 	// xTaskCreate(task_led_blink_invert, "led_blink_invert", 256, NULL, 2, NULL);
     // xTaskCreate(task_led_blink_heartbeat, "led_blink_heartbeat", 256, NULL, 2, NULL);
@@ -204,13 +134,18 @@ void user_init(void) {
 	// xTaskCreate(task_ask_syn_receive_process, "ask_syn_receive_process", 256, NULL, 2, NULL);
 	// xTaskCreate(task_ask_syn_transmit_process, "ask_syn_receive_process", 256, NULL, 2, NULL);
 
-	xTaskCreate(task_watchdog, "watchdog", 256, NULL, 3, NULL);
-	// xTaskCreate(task_ping, "ping", 256, NULL, 3, NULL);
-	xTaskCreate(task_wireless_mouse_process, "wireless_mouse_process", 256, NULL, 2, NULL);
+	xTaskCreate(
+		task_wireless_mouse_process_data,
+		"wireless_mouse_process_data",
+		256,
+		NULL,
+		tskIDLE_PRIORITY + 2,
+		&gyromouse.tasks.wireless_mouse_process_data);
 
+	// Only in dongle mode:
+	// xTaskCreate(task_ping, "ping", 256, NULL, 3, NULL);
 
 	WRITE_COMMAND("state", "init_user_end");
-
 }
 
 #ifdef	__cplusplus

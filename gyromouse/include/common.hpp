@@ -43,19 +43,20 @@
 #define ROW_LEDS_COUNT 4
 #define MODULE_LEDS_COUNT 1
 
-#define LEDS_UPDATE_INTERVAL 15
-#define BUTTONS_UPDATE_INTERVAL 30
+#define LEDS_UPDATE_INTERVAL_DEFAULT 15
+#define BUTTONS_UPDATE_INTERVAL_DEFAULT 30
 
 // #define IMU_UPDATE_INTERVAL 10
 // 50Hz ==> 20ms
-#define IMU_UPDATE_INTERVAL 20
+#define IMU_UPDATE_INTERVAL_DEFAULT 20
 
 
-extern bool imu_paused;
-extern bool debugging_enabled;
+#include "gyromouse.hpp"
 
 
 // Tasks
+void task_watchdog(void *pvParameters);
+
 void task_device_io_leds_update(void *pvParameters);
 void task_device_io_full_update(void *pvParameters);
 void task_device_imu_update(void *pvParameters);
@@ -69,12 +70,6 @@ void task_serial_commands(void *pvParameters);
 
 void task_nrf_transmitter(void *pvParameters);
 // void task_nrf_receiver(void *pvParameters);
-
-struct TaskHandles {
-    TaskHandle_t ask_syn_transmitter = nullptr;
-};
-
-extern struct TaskHandles task_handles;
 
 // Common macros
 
@@ -91,3 +86,12 @@ extern struct TaskHandles task_handles;
 #define DEBUG_PRINTLN(format, ...)
 #define DEBUG_COMMAND(command, value, ...)
 #endif
+
+
+inline TickType_t get_time_delta(TickType_t start, TickType_t end) {
+    return end - start;
+}
+
+inline TickType_t get_time_ms() {
+    return xTaskGetTickCount() * portTICK_PERIOD_MS;
+}

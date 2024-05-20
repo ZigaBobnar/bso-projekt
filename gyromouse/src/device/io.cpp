@@ -58,14 +58,7 @@ void IO::_update_pcf() {
     // uint8_t buttons_pcf = I2C_pcf8574.read_byte(NULL);
     // I2C_pcf8574.write_byte(leds_pcf);
 
-    for (int i = 0; i < BUTTONS_COUNT; i++) {
-        button_previous_states[i] = button_states[i];
-    }
-
-    button_states[0] = !(buttons_pcf & BUTTON_0);
-    button_states[1] = !(buttons_pcf & BUTTON_1);
-    button_states[2] = !(buttons_pcf & BUTTON_2);
-    button_states[3] = !(buttons_pcf & BUTTON_3);
+    process_buttons_update(buttons_pcf);
 }
 
 void IO::set_module_led(uint8_t index, bool state) {
@@ -87,6 +80,28 @@ void IO::set_row_led(uint8_t index, bool state) {
     if (state != row_led_pending_states[index]) {
         row_led_pending_states[index] = state;
         row_led_state_changed = true;
+    }
+}
+
+void IO::process_buttons_update(uint8_t buttons_pcf) {
+    for (int i = 0; i < BUTTONS_COUNT; i++) {
+        button_previous_states[i] = button_states[i];
+    }
+
+    button_states[0] = !(buttons_pcf & BUTTON_0);
+    button_states[1] = !(buttons_pcf & BUTTON_1);
+    button_states[2] = !(buttons_pcf & BUTTON_2);
+    button_states[3] = !(buttons_pcf & BUTTON_3);
+
+    for (int i = 0; i < BUTTONS_COUNT; i++) {
+        if (button_states[i] != button_previous_states[i]) {
+            // State changed
+
+            bool new_state = button_states[i];
+            set_row_led(i, new_state); // Indicate button press with LED
+
+            gyromouse.on_button_state_change(i, new_state);
+        }
     }
 }
 

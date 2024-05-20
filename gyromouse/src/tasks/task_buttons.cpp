@@ -5,28 +5,6 @@
 #include <stdio.h>
 #include "device/io.hpp"
 
-void task_buttons_toggle_leds(void *pvParameters) {
-    bool button_states[BUTTONS_COUNT] = { 0 };
-
-    while(1) {
-        for (int i = 0; i < BUTTONS_COUNT; i++) {
-            bool new_state = io.get_button(i);
-            if (button_states[i] != new_state) {
-                button_states[i] = new_state;
-
-                if (!new_state) {
-                    // Toggle on button release
-                    io.toggle_row_led(i);
-                }
-            }
-        }
-
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-
-    vTaskDelete(NULL);
-}
-
 void task_buttons_write_console(void *pvParameters) {
     bool button_states[BUTTONS_COUNT] = { 0 };
 

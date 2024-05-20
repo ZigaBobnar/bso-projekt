@@ -66,7 +66,7 @@ const uint8_t PING_RESPONSE_BYTE    = 0b01010101;
  * All scale values data are in float format (32 bits, 4-byte)
  * Int16 values must be multiplied with scale to obtain real value.
  */
-enum class WirelessMouseCommand : uint8_t {
+enum class WirelessCommand : uint8_t {
     Unknown = 0,                    // Not used, should indicate an error
     Ping = 1,                       // Response data: 1 byte = 0b10101010
     StartOfNewData = 3,             // Response data: 2 bytes (int16 time in us since the last transmissions)
@@ -100,24 +100,19 @@ enum class WirelessMouseCommand : uint8_t {
     Temperature_Scale = 50,         // Response data: 4 bytes (float)
     Temperature_Int16 = 51,         // Response data: 2 bytes (int16)
 };
-uint8_t get_wireless_mouse_command_data_length(WirelessMouseCommand command);
-WirelessMouseCommand parse_wireless_mouse_command(uint8_t value);
+uint8_t get_wireless_command_data_length(WirelessCommand command);
+WirelessCommand parse_wireless_command(uint8_t value);
 
-enum class WirelessMouseMode {
-    Mouse = 0,
-    Dongle = 1,
-};
-
-class WirelessMouse {
+class Wireless {
 public:
-    WirelessMouse(const int spi_clock_pin, const int chip_select_pin, const int chip_enable_pin);
+    Wireless(const int spi_clock_pin, const int chip_select_pin, const int chip_enable_pin);
 
     /* Set the channel 0-125*/
     void init(const uint8_t channel);
 
-    void write_packet(WirelessMouseCommand command, const uint8_t* data, uint8_t length);
+    void write_packet(WirelessCommand command, const uint8_t* data, uint8_t length);
 
-    void process_data();
+    void _process_data_task();
 
     void switch_to_dongle_mode();
     void switch_to_mouse_mode();
@@ -127,13 +122,11 @@ private:
     int chip_select_pin;
     int chip_enable_pin;
     uint8_t channel;
-    WirelessMouseMode mode = WirelessMouseMode::Mouse;
 
     RF24 radio;
 
     bool radio_available;
-
 };
 
-extern WirelessMouse wireless_mouse;
-extern TickType_t last_ping_request;
+void task_wireless_process_data(void *pvParameters);
+extern Wireless wireless;

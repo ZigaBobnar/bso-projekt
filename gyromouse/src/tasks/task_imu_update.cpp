@@ -1,41 +1,26 @@
 #include "common.hpp"
 
-#include <FreeRTOS.h>
-#include <task.h>
-#include <stdio.h>
-
 #include "device/imu.hpp"
 #include "device/drivers/ask_syn.hpp"
 
-bool imu_paused = false;
-
-inline TickType_t get_time_delta(TickType_t start, TickType_t end) {
-    return end - start;
-}
-
-inline TickType_t get_time_ms() {
-    return xTaskGetTickCount() * portTICK_PERIOD_MS;
-}
-
 void task_device_imu_update(void *pvParameters) {
+    TickType_t current_time = gyromouse.timings.last_imu_update = xTaskGetTickCount();
+
     DEBUG_COMMAND("debug", "task_device_imu_update[init]");
     imu.init();
+
     WRITE_COMMAND("mpu_who_am_i", "0x%x", imu.mpu_who_am_i);
     WRITE_COMMAND("ak_who_am_i", "0x%x", imu.ak_who_am_i);
-    // printf("$accel_test=%f,%f,%f\n", imu.accel_test.x, imu.accel_test.y, imu.accel_test.z);
-    // printf("$gyro_test=%f,%f,%f\n", imu.gyro_test.x, imu.gyro_test.y, imu.gyro_test.z);
-
-    TickType_t last_wake_time = get_time_ms();
-    TickType_t last_update_time = get_time_ms();
+    // WRITE_COMMAND("accel_test", "%f,%f,%f", imu.accel_test.x, imu.accel_test.y, imu.accel_test.z);
+    // WRITE_COMMAND("gyro_test", "%f,%f,%f", imu.gyro_test.x, imu.gyro_test.y, imu.gyro_test.z);
 
     DEBUG_COMMAND("debug", "task_device_imu_update[loop]");
     while (true) {
-        if (imu_paused) {
-            vTaskDelay(IMU_UPDATE_INTERVAL / portTICK_PERIOD_MS);
+        if (gyromouse.imu_config.paused) {
+            vTaskDelayUntil(&current_time, gyromouse.imu_config.update_interval_ms / portTICK_PERIOD_MS);
             continue;
         }
         
-        TickType_t update_time = get_time_ms();
         imu.update();
 
         // Calculate kinematics of mouse
@@ -44,7 +29,7 @@ void task_device_imu_update(void *pvParameters) {
         mosue_deltas[1] = - imu.gyroscope.y * 1000;
 
         WRITE_COMMAND("update", "start");
-        WRITE_COMMAND("dt", "%d", get_time_delta(last_update_time, update_time));
+        WRITE_COMMAND("dt", "%d", get_time_delta(gyromouse.timings.last_imu_update, current_time));
         WRITE_COMMAND("accel", "%f,%f,%f", imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z);
         WRITE_COMMAND("gyro", "%f,%f,%f", imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z);
         WRITE_COMMAND("mag", "%f,%f,%f", imu.magnetometer.values.x, imu.magnetometer.values.y, imu.magnetometer.values.z);
@@ -59,6 +44,7 @@ void task_device_imu_update(void *pvParameters) {
         WRITE_COMMAND("update", "done");
 
         
+        // TODO: Send the data
 
         // uint8_t data_to_send[12];
         // uint32_t packed_float;
@@ -102,25 +88,24 @@ void task_device_imu_update(void *pvParameters) {
         //     ask_syn_transmitter.send_packet(data_to_send, 12);
         // }
 
-        if (!ask_syn_transmitter.tx_prefill_buffer_full) {
-            // WRITE_COMMAND("ask_syn", "Sending mouse data");
-            uint8_t data_to_send[6];
-            data_to_send[0] = 0xa2; // Mouse data
-            data_to_send[1] = mosue_deltas[0] & 0xff;
-            data_to_send[2] = (mosue_deltas[0] >> 8) & 0xff;
-            data_to_send[3] = mosue_deltas[1] & 0xff;
-            data_to_send[4] = (mosue_deltas[1] >> 8) & 0xff;
-            data_to_send[5] = 0x00;
-            ask_syn_transmitter.send_packet(data_to_send, 6);
-        } else {
-            WRITE_COMMAND("error", "ask_syn_transmitter buffer full");
-        }
+        // if (!ask_syn_transmitter.tx_prefill_buffer_full) {
+        //     // WRITE_COMMAND("ask_syn", "Sending mouse data");
+        //     uint8_t data_to_send[6];
+        //     data_to_send[0] = 0xa2; // Mouse data
+        //     data_to_send[1] = mosue_deltas[0] & 0xff;
+        //     data_to_send[2] = (mosue_deltas[0] >> 8) & 0xff;
+        //     data_to_send[3] = mosue_deltas[1] & 0xff;
+        //     data_to_send[4] = (mosue_deltas[1] >> 8) & 0xff;
+        //     data_to_send[5] = 0x00;
+        //     ask_syn_transmitter.send_packet(data_to_send, 6);
+        // } else {
+        //     WRITE_COMMAND("error", "ask_syn_transmitter buffer full");
+        // }
 
-        last_update_time = update_time;
+        gyromouse.timings.last_imu_update = current_time;
 
         // Wait for next read
-        // vTaskDelay(IMU_UPDATE_INTERVAL / portTICK_PERIOD_MS);
-        vTaskDelayUntil(&last_update_time, IMU_UPDATE_INTERVAL / portTICK_PERIOD_MS);
+        vTaskDelayUntil(&current_time, gyromouse.imu_config.update_interval_ms / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL);

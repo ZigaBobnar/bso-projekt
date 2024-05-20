@@ -38,6 +38,8 @@ private:
 
     bool button_states[BUTTONS_COUNT] = { 0 };
     bool button_previous_states[BUTTONS_COUNT] = { 0 };
+
+    void process_buttons_update(uint8_t buttons_pcf);
 };
 
 extern IO io;
