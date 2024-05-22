@@ -1,6 +1,7 @@
 #include "device/drivers/comms_mux.hpp"
 
 #include <esp/gpio.h>
+#include <esp/spi.h>
 
 I2CReservation::~I2CReservation() {
     comms_mux.unlock();
@@ -80,6 +81,8 @@ SPIReservation CommsMux::reserve_spi() {
     current_protocol = CommsMux::EnabledProtocol::SPI;
     spi_ready = true;
     i2c_ready = false;
+    
+    spi_init(1, SPI_MODE0, SPI_FREQ_DIV_1M, 1, SPI_LITTLE_ENDIAN, false);
 
     return SPIReservation();
 }

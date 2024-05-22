@@ -1,7 +1,8 @@
 #include "common.hpp"
 
 #include "device/imu.hpp"
-#include "device/drivers/ask_syn.hpp"
+// #include "device/drivers/ask_syn.hpp"
+#include "device/wireless.hpp"
 
 void task_device_imu_update(void *pvParameters) {
     TickType_t current_time = gyromouse.timings.last_imu_update = xTaskGetTickCount();
@@ -43,8 +44,10 @@ void task_device_imu_update(void *pvParameters) {
         WRITE_COMMAND("mouse", "%d,%d", mosue_deltas[0], mosue_deltas[1]);
         WRITE_COMMAND("update", "done");
 
-        
-        // TODO: Send the data
+
+        int16_t mouse_move[2] = { mosue_deltas[0], mosue_deltas[1] };
+        wireless.write_packet(WirelessCommand::Mouse_Move_Int16_XY, (uint8_t*)mouse_move, 4);
+
 
         // uint8_t data_to_send[12];
         // uint32_t packed_float;

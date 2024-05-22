@@ -2,8 +2,8 @@ from time import sleep
 import serial
 
 
-# port = '/dev/ttyUSB0'
-port = '/dev/ttyUSB1'
+port = '/dev/ttyUSB0'
+# port = '/dev/ttyUSB1'
 # port = '/dev/ttyUSB2'
 # port = 'COM19'
 # port = 'COM21'
@@ -15,7 +15,8 @@ serial = serial.Serial(port, 115200, timeout=1)
 
 try:
     # Put atttached device into dongle mode (receive data from the mouse)
-    serial.write(b'$mode=dongle\r\n')
+    # serial.write(b'$mode=dongle\n')
+    serial.write(b'$debugging_enabled=true\n')
 
     while True:
         data = serial.readline()

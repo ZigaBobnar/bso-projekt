@@ -11,22 +11,33 @@
 
 #define MODULE_LED_0_PIN 2
 
+// The internal LED seems to interfere with the nrf module
+#define DISABLE_MODULE_LED
+
+#ifndef DISABLE_MODULE_LED 
+    #define MODULE_LED(...) __VA_ARGS__
+#else
+    #define MODULE_LED(...)
+#endif
+
 void IO::init() {
     DEBUG_COMMAND("debug", "IO::init");
     
     I2C_pcf8574.write_byte(0xff);
-    gpio_enable(MODULE_LED_0_PIN, GPIO_OUTPUT);
+    MODULE_LED(gpio_enable(MODULE_LED_0_PIN, GPIO_OUTPUT));
 }
 
 void IO::update_full() {
-    _update_module_leds();
+    MODULE_LED(_update_module_leds());
     _update_pcf();
 }
 
 void IO::update_leds() {
-    if (module_led_state_changed) {
-        _update_module_leds();
-    }
+    MODULE_LED(
+        if (module_led_state_changed) {
+            _update_module_leds();
+        }
+    );
 
     if (row_led_state_changed) {
         _update_pcf();
@@ -34,10 +45,12 @@ void IO::update_leds() {
 }
 
 void IO::_update_module_leds() {
-    DEBUG_COMMAND("debug", "IO::_update_module_leds");
-    
-    module_led_states[0] = module_led_pending_states[0];
-    gpio_write(MODULE_LED_0_PIN, !module_led_states[0]);
+    MODULE_LED(
+        DEBUG_COMMAND("debug", "IO::_update_module_leds");
+        
+        module_led_states[0] = module_led_pending_states[0];
+        gpio_write(MODULE_LED_0_PIN, !module_led_states[0]);
+    );
 }
 
 void IO::_update_pcf() {
@@ -62,14 +75,16 @@ void IO::_update_pcf() {
 }
 
 void IO::set_module_led(uint8_t index, bool state) {
-    if (index > MODULE_LEDS_COUNT) {
-        return;
-    }
+    MODULE_LED(
+        if (index > MODULE_LEDS_COUNT) {
+            return;
+        }
 
-    if (state != module_led_pending_states[index]) {
-        module_led_pending_states[index] = state;
-        module_led_state_changed = true;
-    }
+        if (state != module_led_pending_states[index]) {
+            module_led_pending_states[index] = state;
+            module_led_state_changed = true;
+        }
+    );
 }
 
 void IO::set_row_led(uint8_t index, bool state) {
@@ -96,11 +111,7 @@ void IO::process_buttons_update(uint8_t buttons_pcf) {
     for (int i = 0; i < BUTTONS_COUNT; i++) {
         if (button_states[i] != button_previous_states[i]) {
             // State changed
-
-            bool new_state = button_states[i];
-            set_row_led(i, new_state); // Indicate button press with LED
-
-            gyromouse.on_button_state_change(i, new_state);
+            gyromouse.on_button_state_change(i, button_states[i]);
         }
     }
 }

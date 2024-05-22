@@ -36,7 +36,7 @@ uint8_t get_wireless_command_data_length(WirelessCommand command) {
     }
 }
 
-WirelessCommand parse_wireless_mouse_command(uint8_t value) {
+WirelessCommand parse_wireless_command(uint8_t value) {
     WirelessCommand command = static_cast<WirelessCommand>(value);
     switch (command) {
         case WirelessCommand::Ping:
@@ -113,6 +113,11 @@ void Wireless::init(const uint8_t channel) {
 
     radio.printDetails();
  
+    // Enable the interrupt -> it is active low
+    gpio_enable(BOARD_PIN_NRF24_IRQ, GPIO_INPUT);
+    gpio_set_pullup(BOARD_PIN_NRF24_IRQ, true, false);
+    // gpio_set_interrupt(BOARD_PIN_NRF24_IRQ, GPIO_INTTYPE_EDGE_NEG, wireless_interrupt_handler);
+
     switch_to_mouse_mode();
 
     vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -120,6 +125,7 @@ void Wireless::init(const uint8_t channel) {
 }
 
 // This must be ran as a FreeRTOS task that does not expect to be used for anything else
+// TODO: Interrupts are not implemented by base NRF library -> we should have a possibility to prevent constant switching between SPI and I2C mode, it should only switch on interrupt
 void Wireless::_process_data_task() {
     while (true) {
         // Check if we have any payloads available.
@@ -233,15 +239,19 @@ void Wireless::write_packet(WirelessCommand command, const uint8_t* data, uint8_
     SPIReservation reservation = comms_mux.reserve_spi();
 
     radio.stopListening();
-    // WRITE_COMMAND("nrf24", "Sending packet (command: 0x%x, length: %d)", static_cast<uint8_t>(command), length);
+    WRITE_COMMAND("nrf24", "Sending packet (command: 0x%x, length: %d)", static_cast<uint8_t>(command), length);
     radio.write(packet_data, total_length);
     radio.startListening();
 }
 
-void task_wireless_mouse_process_data(void *pvParameters) {
+void task_wireless_process_data(void *pvParameters) {
     wireless._process_data_task();
 
     vTaskDelete(NULL);
+}
+
+void wireless_interrupt_handler() {
+    // This comes from the interrupt pin going low on NRF -> meaning we have to check the status register
 }
 
 Wireless wireless(BOARD_PIN_SPI_SCK, BOARD_PIN_NRF24_CS, BOARD_PIN_NRF24_CE);

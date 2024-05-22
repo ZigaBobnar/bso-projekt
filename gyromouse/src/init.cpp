@@ -16,7 +16,7 @@
 #include "config.hpp"
 
 #include "device/drivers/ask_syn.hpp"
-#include "device/wireless_mouse.hpp"
+#include "device/wireless.hpp"
 
 
 #ifdef	__cplusplus
@@ -38,20 +38,39 @@ void init_wifi() {
 #endif
 
 
-void task_ping(void *pvParameters) {
+void task_dongle_send_ping(void *pvParameters) {
 	static TickType_t current_time = 0;
 	current_time = gyromouse.timings.last_ping_request = xTaskGetTickCount();
 
 	while (true) {
-		// TickType_t current_time = xTaskGetTickCount();
-
 		float diff = ((float)current_time - gyromouse.timings.last_ping_request) * portTICK_PERIOD_MS/1000;
 
-		WRITE_COMMAND("ping", "request(diff=%f)", diff);
-		gyromouse.mode = GyroMouse::Mode::DONGLE;
-		wireless_mouse.write_packet(WirelessMouseCommand::Ping, nullptr, 0);
+		if (gyromouse.mode == GyroMouse::Mode::DONGLE) {
+			// Check if the last driver mode keepalive update was too long ago and disable dongle mode
+			float keepalive_diff = ((float)current_time - gyromouse.timings.last_drive_mode_keepalive_message) * portTICK_PERIOD_MS/1000;
+			static float last_check = 0;
+			float last_check_diff = ((float)current_time - last_check) * portTICK_PERIOD_MS/1000;
+			
+			if (keepalive_diff > 1.0f && (last_check_diff > 1.0f || last_check_diff < 0.0f)) {
+				// Send the request for mode keepalive every second.
+				WRITE_COMMAND("dongle", "check");
+				last_check = current_time;
+			} else if (keepalive_diff > 5.0f && last_check_diff > 1.0f) {
+				// Disable dongle mode after losing communication for more than 5 seconds.
 
-		gyromouse.timings.last_ping_request = current_time;
+				WRITE_COMMAND("error", "Driver mode keepalive message not received for too long");
+				gyromouse.put_into_mouse_mode();
+			}
+		}
+
+		if (gyromouse.mode == GyroMouse::Mode::DONGLE) {
+			// Only in dongle mode:
+			WRITE_COMMAND("ping", "request(diff=%f)", diff);
+			gyromouse.mode = GyroMouse::Mode::DONGLE;
+			wireless.write_packet(WirelessCommand::Ping, nullptr, 0);
+
+			gyromouse.timings.last_ping_request = current_time;
+		}
 
 		vTaskDelayUntil(&current_time, 1500 / portTICK_PERIOD_MS);
 	}
@@ -83,67 +102,74 @@ void user_init(void) {
 		sdk_wifi_set_opmode(NULL_MODE);
 	#endif
 
-
-
-
-	// Initialize hardware into default state before starting any further tasks
-
-	wireless_mouse.init(WIRELESS_DEFAULT_RADIO_CHANNEL);
-
-	// ask_syn_transmitter.init();
-
-	// ask_syn_receiver.init();
-	// ask_syn_receiver.resume_interrupt();
-
-
+	gyromouse.init_all();
 
 
 	// Start the periodic tasks
 
+	// xTaskCreate(
+	// 	task_watchdog,
+	// 	"watchdog",
+	// 	256,
+	// 	NULL,
+	// 	tskIDLE_PRIORITY + 6, // Lower priority than the main tasks to see if everything is running
+	// 	&gyromouse.tasks.watchdog);
+
+	// xTaskCreate(
+	// 	task_device_imu_update,
+	// 	"device_imu_update",
+	// 	512,
+	// 	NULL,
+	// 	tskIDLE_PRIORITY + 2,
+	// 	&gyromouse.tasks.device_imu_update);
+
 	xTaskCreate(
-		task_watchdog,
-		"watchdog",
+		task_device_io_leds_update,
+		"io_leds_update",
 		256,
 		NULL,
-		tskIDLE_PRIORITY + 6, // Lower priority than the main tasks to see if everything is running
-		&gyromouse.tasks.watchdog);
+		3,
+		NULL);
 
 	xTaskCreate(
-		task_device_imu_update,
-		"device_imu_update",
-		512,
-		NULL,
-		tskIDLE_PRIORITY + 2,
-		&gyromouse.tasks.device_imu_update);
-
-	xTaskCreate(task_device_io_leds_update, "io_leds_update", 256, NULL, 6, NULL);
-	xTaskCreate(task_device_io_full_update, "io_full_update", 256, NULL, 6, NULL);
-	// xTaskCreate(task_device_imu_update, "imu_update", 1024, NULL, 16, NULL);
-
-    
-	// xTaskCreate(task_led_blink_invert, "led_blink_invert", 256, NULL, 2, NULL);
-    // xTaskCreate(task_led_blink_heartbeat, "led_blink_heartbeat", 256, NULL, 2, NULL);
-    // xTaskCreate(task_led_row_counter, "led_row_counter", 256, NULL, 2, NULL);
-	// xTaskCreate(task_buttons_toggle_leds, "buttons_toggle_leds", 256, NULL, 2, NULL);
-	// xTaskCreate(task_buttons_write_console, "buttons_write_console", 256, NULL, 2, NULL);
-	// xTaskCreate(task_serial_commands, "serial_commands", 512, NULL, 2, NULL);
-
-    // xTaskCreate(task_nrf_transmitter, "nrf_transmitter", 256, NULL, 2, NULL);
-    // xTaskCreate(task_nrf_receiver, "nrf_receiver", 256, NULL, 2, NULL);
-
-	// xTaskCreate(task_ask_syn_receive_process, "ask_syn_receive_process", 256, NULL, 2, NULL);
-	// xTaskCreate(task_ask_syn_transmit_process, "ask_syn_receive_process", 256, NULL, 2, NULL);
-
-	xTaskCreate(
-		task_wireless_mouse_process_data,
-		"wireless_mouse_process_data",
+		task_device_io_full_update,
+		"io_full_update",
 		256,
 		NULL,
-		tskIDLE_PRIORITY + 2,
-		&gyromouse.tasks.wireless_mouse_process_data);
+		3,
+		NULL);
 
-	// Only in dongle mode:
-	// xTaskCreate(task_ping, "ping", 256, NULL, 3, NULL);
+	// xTaskCreate(
+	// 	task_device_imu_update,
+	// 	"imu_update",
+	// 	1024,
+	// 	NULL,
+	// 	16,
+	// 	NULL);
+
+	// xTaskCreate(
+	// 	task_process_serial_commands,
+	// 	"process_serial_commands",
+	// 	512,
+	// 	NULL,
+	// 	2,
+	// 	&gyromouse.tasks.process_serial_commands);
+
+	// xTaskCreate(
+	// 	task_wireless_process_data,
+	// 	"wireless_process_data",
+	// 	1024,
+	// 	NULL,
+	// 	tskIDLE_PRIORITY + 2,
+	// 	&gyromouse.tasks.wireless_mouse_process_data);
+
+	// xTaskCreate(
+	// 	task_dongle_send_ping,
+	// 	"dongle_send_ping",
+	// 	256,
+	// 	NULL,
+	// 	3,
+	// 	&gyromouse.tasks.dongle_send_ping);
 
 	WRITE_COMMAND("state", "init_user_end");
 }

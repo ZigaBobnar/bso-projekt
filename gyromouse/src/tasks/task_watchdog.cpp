@@ -1,5 +1,7 @@
 #include "common.hpp"
 
+
+// Just send the pings through serial interface to let the computer know that the dongle/mouse is still performing correctly
 void task_watchdog(void *pvParameters) {
     TickType_t current_time = gyromouse.timings.last_watchdog_check = xTaskGetTickCount();
 

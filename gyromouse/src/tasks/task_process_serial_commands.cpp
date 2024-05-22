@@ -25,49 +25,49 @@ inline bool string_equals(const char *a, const char *b) {
     return strcmp(a, b) == 0;
 }
 
-void task_serial_commands(void *pvParameters) {
-    while (1) {
+void task_process_serial_commands(void *pvParameters) {
+    while (true) {
         int count = uart_rxfifo_available_count(0);
         if (count == 0) {
-            vTaskDelay(50 / portTICK_PERIOD_MS);
+            vTaskDelay(20 / portTICK_PERIOD_MS);
             continue;
         }
         
         while (uart_rxfifo_available_count(0) > 0) {
             char c = uart_rxfifo_get_char(0);
 
-            if (c == '\n') {
-                *buffer_position = '\0';
+            if (c == '\n' || c == ';') {
+                *buffer_position = '\0'; // End the string
                 buffer_position = &input_command_line_buffer[0];
 
-                if (string_equals(input_command_line_buffer, "$get_info=firmware")) {
-                    WRITE_COMMAND("info", "gyromouse v0.1");
-                } else if (starts_with(input_command_line_buffer, "$debug_enabled=")) {
-                    char *state = &input_command_line_buffer[15];
+                if (string_equals(input_command_line_buffer, "$firmware_info")) {
+                    WRITE_COMMAND("firmware_info", "gyromouse v0.1");
+                } else if (starts_with(input_command_line_buffer, "$debugging_enabled=")) {
+                    char *state = &input_command_line_buffer[19];
                     if (string_equals(state, "true")) {
-                        debugging_enabled = true;
+                        gyromouse.debugging_enabled = true;
                     } else if (string_equals(state, "false")) {
-                        debugging_enabled = false;
+                        gyromouse.debugging_enabled = false;
                     } else {
                         WRITE_COMMAND("error", "invalid_debug_state %s", state);
                     }
                 } else if (starts_with(input_command_line_buffer, "$mode=")) {
                     char *mode = &input_command_line_buffer[6];
                     if (string_equals(mode, "dongle")) {
-                        // WRITE_COMMAND("mode", "normal");
+                        gyromouse.put_into_dongle_mode();
                     } else if (string_equals(mode, "mouse")) {
-                        // WRITE_COMMAND("mode", "debug");
+                        gyromouse.put_into_mouse_mode();
                     } else {
                         WRITE_COMMAND("error", "invalid_mode %s", mode);
                     }
-                } else if (starts_with(input_command_line_buffer, "$imu_state=")) {
-                    char *state = &input_command_line_buffer[11];
-                    if (string_equals(state, "start")) {
-                        DEBUG_COMMAND("debug", "imu starting");
-                        imu_paused = false;
-                    } else if (string_equals(state, "stop")) {
-                        DEBUG_COMMAND("debug", "imu stopping");
-                        imu_paused = true;
+                } else if (starts_with(input_command_line_buffer, "$imu_paused=")) {
+                    char *state = &input_command_line_buffer[12];
+                    if (string_equals(state, "false")) {
+                        DEBUG_COMMAND("debug", "imu resuming");
+                        gyromouse.imu_config.paused = false;
+                    } else if (string_equals(state, "true")) {
+                        DEBUG_COMMAND("debug", "imu pausing");
+                        gyromouse.imu_config.paused = true;
                     } else {
                         WRITE_COMMAND("error", "invalid_imu_state %s", state);
                     }

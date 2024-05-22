@@ -88,8 +88,8 @@ AskSynTransmitter ask_syn_transmitter(BOARD_PIN_SYN115_TXD);
 */
 
 void ask_syn_transmitter_task(void *pvParameters) {
-    if (task_handles.ask_syn_transmitter == nullptr) {
-        task_handles.ask_syn_transmitter = xTaskGetCurrentTaskHandle();
+    if (gyromouse.tasks.ask_syn_transmitter == nullptr) {
+        gyromouse.tasks.ask_syn_transmitter = xTaskGetCurrentTaskHandle();
     }
 
     // TickType_t last_wake = 0;
@@ -161,7 +161,7 @@ void ask_syn_transmitter_task(void *pvParameters) {
         ask_syn_transmitter.tx_last_transmit_time = xTaskGetTickCount();
     }
 
-    task_handles.ask_syn_transmitter = nullptr;
+    gyromouse.tasks.ask_syn_transmitter = nullptr;
     vTaskDelete(NULL);
 }
 
