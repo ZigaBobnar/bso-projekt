@@ -14,28 +14,35 @@ SPIReservation::~SPIReservation() {
 CommsMux::CommsMux(UartParams uart_params, I2CParams i2c_params, SPIParams spi_params) : uart_params(uart_params), i2c_params(i2c_params), spi_params(spi_params) {
     protocol_mutex = xSemaphoreCreateMutex();
 
-	uart_set_baud(uart_params.interface, uart_params.baud_rate);
+    initialize_serial();
     gpio_enable(i2c_params.scl_pin_number, GPIO_OUTPUT);
 }
 
-SerialReservation CommsMux::reserve_serial() {
-    lock();
-
-    if (current_protocol == CommsMux::EnabledProtocol::Serial) {
-        // Skip the reconfiguration phase
-        return SerialReservation();
-    }
-
-    if (serial_ready) {
-        current_protocol = CommsMux::EnabledProtocol::Serial;
-        return SerialReservation();
-    }
-
-    DEBUG_COMMAND("debug", "I2CSPIMux::reserve_serial - reconfiguring");
-
-    current_protocol = CommsMux::EnabledProtocol::Serial;
+void CommsMux::initialize_serial() {
+	uart_set_baud(uart_params.interface, uart_params.baud_rate);
     serial_ready = true;
+}
+
+void CommsMux::initialize_i2c() {
+    current_protocol = CommsMux::EnabledProtocol::I2C;
+    i2c_ready = true;
+    spi_ready = false;
+
+    i2c_init(i2c_params.bus_id, i2c_params.scl_pin_number, i2c_params.sda_pin_number, i2c_params.frequency);
+}
+
+void CommsMux::initialize_spi() {
+    current_protocol = CommsMux::EnabledProtocol::SPI;
+    spi_ready = true;
+    i2c_ready = false;
     
+    spi_init(comms_mux.spi_params.bus_id, SPI_MODE0, SPI_FREQ_DIV_1M, 1, SPI_LITTLE_ENDIAN, false);
+}
+
+SerialReservation CommsMux::reserve_serial() {
+    // Serial is a bit different than I2C and SPI as it does not share pins, this is only if we wanted to ensure data is sent over serial without interference from other tasks
+    xSemaphoreTake(serial_mutex, portMAX_DELAY);
+
     return SerialReservation();
 }
 
@@ -54,11 +61,7 @@ I2CReservation CommsMux::reserve_i2c() {
 
     DEBUG_COMMAND("debug", "I2CSPIMux::reserve_i2c - reconfiguring");
 
-    current_protocol = CommsMux::EnabledProtocol::I2C;
-    i2c_ready = true;
-    spi_ready = false;
-
-    i2c_init(i2c_params.bus_id, i2c_params.scl_pin_number, i2c_params.sda_pin_number, i2c_params.frequency);
+    initialize_i2c();
 
     return I2CReservation();
 }
@@ -78,21 +81,14 @@ SPIReservation CommsMux::reserve_spi() {
 
     DEBUG_COMMAND("debug", "I2CSPIMux::reserve_spi - reconfiguring");
 
-    current_protocol = CommsMux::EnabledProtocol::SPI;
-    spi_ready = true;
-    i2c_ready = false;
-    
-    spi_init(1, SPI_MODE0, SPI_FREQ_DIV_1M, 1, SPI_LITTLE_ENDIAN, false);
+    initialize_spi();
 
     return SPIReservation();
 }
 
 inline void CommsMux::lock() {
     xSemaphoreTake(protocol_mutex, portMAX_DELAY);
-}
-
-inline void CommsMux::unlock() {
-    xSemaphoreGive(protocol_mutex);
+    is_in_use = true;
 }
 
 

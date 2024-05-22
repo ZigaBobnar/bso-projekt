@@ -155,13 +155,13 @@ void user_init(void) {
 	// 	2,
 	// 	&gyromouse.tasks.process_serial_commands);
 
-	// xTaskCreate(
-	// 	task_wireless_process_data,
-	// 	"wireless_process_data",
-	// 	1024,
-	// 	NULL,
-	// 	tskIDLE_PRIORITY + 2,
-	// 	&gyromouse.tasks.wireless_mouse_process_data);
+	xTaskCreate(
+		task_wireless_process_data,
+		"wireless_process_data",
+		1024,
+		NULL,
+		tskIDLE_PRIORITY + 2,
+		&gyromouse.tasks.wireless_mouse_process_data);
 
 	// xTaskCreate(
 	// 	task_dongle_send_ping,

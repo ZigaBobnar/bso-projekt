@@ -105,7 +105,7 @@ WirelessCommand parse_wireless_command(uint8_t value);
 
 class Wireless {
 public:
-    Wireless(const int spi_clock_pin, const int chip_select_pin, const int chip_enable_pin);
+    Wireless();
 
     /* Set the channel 0-125*/
     void init(const uint8_t channel);
@@ -117,15 +117,22 @@ public:
     void switch_to_dongle_mode();
     void switch_to_mouse_mode();
 
-private:
-    int spi_clock_pin;
-    int chip_select_pin;
-    int chip_enable_pin;
-    uint8_t channel;
+    void add_incoming_packet_to_processing_queue(const uint8_t* data, uint8_t length);
 
+private:
     RF24 radio;
 
     bool radio_available;
+
+    uint8_t incoming_processing_queue[8][32];
+    uint8_t incoming_processing_queue_lengths[8];
+    uint8_t incoming_processing_queue_head;
+    uint8_t incoming_processing_queue_tail;
+
+    uint8_t outgoing_processing_queue[8][32];
+    uint8_t outgoing_processing_queue_lengths[8];
+    uint8_t outgoing_processing_queue_head;
+    uint8_t outgoing_processing_queue_tail;
 };
 
 void task_wireless_process_data(void *pvParameters);

@@ -30,7 +30,7 @@ class CommsMux {
 public:
     enum class EnabledProtocol {
         Unknown,
-        Serial,
+        // Serial,
         I2C,
         SPI,
     };
@@ -59,17 +59,25 @@ public:
     SerialReservation reserve_serial();
     I2CReservation reserve_i2c();
     SPIReservation reserve_spi();
-private:
+
+public: // Should be private ideally
     SemaphoreHandle_t protocol_mutex;
+    SemaphoreHandle_t serial_mutex;
 
     void lock();
     void unlock();
+
+    void initialize_serial();
+    void initialize_i2c();
+    void initialize_spi();
 
     EnabledProtocol current_protocol = EnabledProtocol::Unknown;
 
     bool serial_ready = false;
     bool i2c_ready = false;
     bool spi_ready = false;
+
+    bool is_in_use = false;
 
     UartParams uart_params;
     I2CParams i2c_params;
