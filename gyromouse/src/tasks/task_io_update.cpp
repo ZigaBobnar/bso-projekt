@@ -5,7 +5,7 @@
 
 // Only update the led values
 void task_device_io_leds_update(void *pvParameters) {
-    DEBUG_COMMAND("debug", "task_device_io_leds_update[init]");
+    WRITE_COMMAND("debug", "task_device_io_leds_update[init]");
 
     while(true) {
         if (gyromouse.io_config.leds_update_interval_ms == 0) {
@@ -20,14 +20,13 @@ void task_device_io_leds_update(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-
 void task_device_io_full_update(void *pvParameters) {
     TickType_t current_time = xTaskGetTickCount();
     
-    DEBUG_COMMAND("debug", "task_device_io_full_update[init]");
+    WRITE_COMMAND("debug", "task_device_io_full_update[init]");
     io.init();
 
-    DEBUG_COMMAND("debug", "task_device_io_full_update[loop]");
+    WRITE_COMMAND("debug", "task_device_io_full_update[loop]");
     while(true) {
         if (gyromouse.io_config.buttons_update_interval_ms == 0) {
             vTaskDelayUntil(&current_time, pdMS_TO_TICKS(1000));

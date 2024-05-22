@@ -21,10 +21,10 @@ public:
     ~SPIReservation();
 };
 
-class SerialReservation {
-public:
-    ~SerialReservation();
-};
+// class SerialReservation {
+// public:
+//     ~SerialReservation();
+// };
 
 class CommsMux {
 public:
@@ -56,7 +56,7 @@ public:
 
     CommsMux(UartParams uart_params, I2CParams i2c_params, SPIParams spi_params);
 
-    SerialReservation reserve_serial();
+    // SerialReservation reserve_serial();
     I2CReservation reserve_i2c();
     SPIReservation reserve_spi();
 

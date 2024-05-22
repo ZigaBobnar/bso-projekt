@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include <../components/RF24/RF24.h>
+// #include <../components/RF24/RF24.h>
+
+#include "device/drivers/nrf24.hpp"
 
 /*
  * Application cenrtric driver for nRF24 radio module.
@@ -105,14 +107,12 @@ WirelessCommand parse_wireless_command(uint8_t value);
 
 class Wireless {
 public:
-    Wireless();
-
     /* Set the channel 0-125*/
     void init(const uint8_t channel);
 
     void write_packet(WirelessCommand command, const uint8_t* data, uint8_t length);
 
-    void _process_data_task();
+    void _process_data();
 
     void switch_to_dongle_mode();
     void switch_to_mouse_mode();
@@ -120,20 +120,19 @@ public:
     void add_incoming_packet_to_processing_queue(const uint8_t* data, uint8_t length);
 
 private:
-    RF24 radio;
+    // bool radio_available;
 
-    bool radio_available;
+    const static uint8_t incomin_processing_queue_size = 8;
+    uint8_t incoming_processing_queue[incomin_processing_queue_size][32];
+    uint8_t incoming_processing_queue_lengths[incomin_processing_queue_size];
+    uint8_t incoming_processing_queue_position;
 
-    uint8_t incoming_processing_queue[8][32];
-    uint8_t incoming_processing_queue_lengths[8];
-    uint8_t incoming_processing_queue_head;
-    uint8_t incoming_processing_queue_tail;
-
-    uint8_t outgoing_processing_queue[8][32];
-    uint8_t outgoing_processing_queue_lengths[8];
-    uint8_t outgoing_processing_queue_head;
-    uint8_t outgoing_processing_queue_tail;
+    // uint8_t outgoing_processing_queue[8][32];
+    // uint8_t outgoing_processing_queue_lengths[8];
+    // uint8_t outgoing_processing_queue_position;
 };
 
 void task_wireless_process_data(void *pvParameters);
+void task_wireless_receive_data(void *pvParameters);
+
 extern Wireless wireless;

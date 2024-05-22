@@ -24,6 +24,7 @@ void CommsMux::initialize_serial() {
 }
 
 void CommsMux::initialize_i2c() {
+    DEBUG_COMMAND("debug", "CommsMux::initialize_i2c");
     current_protocol = CommsMux::EnabledProtocol::I2C;
     i2c_ready = true;
     spi_ready = false;
@@ -32,6 +33,7 @@ void CommsMux::initialize_i2c() {
 }
 
 void CommsMux::initialize_spi() {
+    DEBUG_COMMAND("debug", "CommsMux::initialize_spi");
     current_protocol = CommsMux::EnabledProtocol::SPI;
     spi_ready = true;
     i2c_ready = false;
@@ -39,12 +41,12 @@ void CommsMux::initialize_spi() {
     spi_init(comms_mux.spi_params.bus_id, SPI_MODE0, SPI_FREQ_DIV_1M, 1, SPI_LITTLE_ENDIAN, false);
 }
 
-SerialReservation CommsMux::reserve_serial() {
-    // Serial is a bit different than I2C and SPI as it does not share pins, this is only if we wanted to ensure data is sent over serial without interference from other tasks
-    xSemaphoreTake(serial_mutex, portMAX_DELAY);
+// SerialReservation CommsMux::reserve_serial() {
+//     // Serial is a bit different than I2C and SPI as it does not share pins, this is only if we wanted to ensure data is sent over serial without interference from other tasks
+//     xSemaphoreTake(serial_mutex, portMAX_DELAY);
 
-    return SerialReservation();
-}
+//     return SerialReservation();
+// }
 
 I2CReservation CommsMux::reserve_i2c() {
     lock();
@@ -88,9 +90,15 @@ SPIReservation CommsMux::reserve_spi() {
 
 inline void CommsMux::lock() {
     xSemaphoreTake(protocol_mutex, portMAX_DELAY);
+    // DEBUG_COMMAND("debug", "CommsMux::lock");
     is_in_use = true;
 }
 
+inline void CommsMux::unlock() {
+    xSemaphoreGive(protocol_mutex);
+    // DEBUG_COMMAND("debug", "CommsMux::unlock (mode=%d)", (uint8_t)current_protocol);
+    is_in_use = false;
+}
 
 CommsMux comms_mux({
     .interface = 0,

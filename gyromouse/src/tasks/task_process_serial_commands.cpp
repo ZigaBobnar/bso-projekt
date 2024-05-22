@@ -26,6 +26,8 @@ inline bool string_equals(const char *a, const char *b) {
 }
 
 void task_process_serial_commands(void *pvParameters) {
+    WRITE_COMMAND("debug", "task_process_serial_commands[init]");
+    
     while (true) {
         int count = uart_rxfifo_available_count(0);
         if (count == 0) {

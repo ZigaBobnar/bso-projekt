@@ -67,10 +67,9 @@ void task_led_row_counter(void *pvParameters);
 void task_buttons_toggle_leds(void *pvParameters);
 void task_process_serial_commands(void *pvParameters);
 
-void task_nrf_transmitter(void *pvParameters);
-// void task_nrf_receiver(void *pvParameters);
-
 // Common macros
+
+#define IGNORE_UNUSED(x) (void)(x)
 
 #define COMMAND_FORMAT(command, value) "$" command "=" value
 #define WRITE_COMMAND(command, value, ...) printf(COMMAND_FORMAT(command, value) "\n", ##__VA_ARGS__)

@@ -37,7 +37,6 @@ void init_wifi() {
 }
 #endif
 
-
 void task_dongle_send_ping(void *pvParameters) {
 	static TickType_t current_time = 0;
 	current_time = gyromouse.timings.last_ping_request = xTaskGetTickCount();
@@ -68,14 +67,16 @@ void task_dongle_send_ping(void *pvParameters) {
 			WRITE_COMMAND("ping", "request(diff=%f)", diff);
 			gyromouse.mode = GyroMouse::Mode::DONGLE;
 			wireless.write_packet(WirelessCommand::Ping, nullptr, 0);
+			WRITE_COMMAND("ping", "was sent");
 
 			gyromouse.timings.last_ping_request = current_time;
 		}
 
 		vTaskDelayUntil(&current_time, 1500 / portTICK_PERIOD_MS);
 	}
-}
 
+	vTaskDelete(NULL);
+}
 
 /*
  * FreeRTOS Entrypoint
@@ -104,72 +105,78 @@ void user_init(void) {
 
 	gyromouse.init_all();
 
-
 	// Start the periodic tasks
 
-	// xTaskCreate(
-	// 	task_watchdog,
-	// 	"watchdog",
-	// 	256,
-	// 	NULL,
-	// 	tskIDLE_PRIORITY + 6, // Lower priority than the main tasks to see if everything is running
-	// 	&gyromouse.tasks.watchdog);
+	if (xTaskCreate(
+		task_watchdog,
+		"watchdog",
+		256,
+		NULL,
+		tskIDLE_PRIORITY + 1, // Lower priority than the main tasks to see if everything is running
+		&gyromouse.tasks.watchdog) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create watchdog task");
 
 	// xTaskCreate(
 	// 	task_device_imu_update,
 	// 	"device_imu_update",
 	// 	512,
 	// 	NULL,
-	// 	tskIDLE_PRIORITY + 2,
+	// 	tskIDLE_PRIORITY + 4,
 	// 	&gyromouse.tasks.device_imu_update);
 
-	xTaskCreate(
+	if (xTaskCreate(
 		task_device_io_leds_update,
 		"io_leds_update",
 		256,
 		NULL,
-		3,
-		NULL);
+		tskIDLE_PRIORITY + 5,
+		NULL) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create leds update task");
 
-	xTaskCreate(
+	if (xTaskCreate(
 		task_device_io_full_update,
 		"io_full_update",
 		256,
 		NULL,
-		3,
-		NULL);
+		tskIDLE_PRIORITY + 5,
+		NULL) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create io update task");
 
-	// xTaskCreate(
-	// 	task_device_imu_update,
-	// 	"imu_update",
-	// 	1024,
-	// 	NULL,
-	// 	16,
-	// 	NULL);
+	if (xTaskCreate(
+		task_process_serial_commands,
+		"process_serial_commands",
+		512,
+		NULL,
+		tskIDLE_PRIORITY + 4,
+		&gyromouse.tasks.process_serial_commands) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create process serial commands task");
 
-	// xTaskCreate(
-	// 	task_process_serial_commands,
-	// 	"process_serial_commands",
-	// 	512,
-	// 	NULL,
-	// 	2,
-	// 	&gyromouse.tasks.process_serial_commands);
+	if (xTaskCreate(
+		task_wireless_receive_data,
+		"wireless_receive_data",
+		512,
+		NULL,
+		tskIDLE_PRIORITY + 5,
+		NULL) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create wireless receive data task");
 
-	xTaskCreate(
+	if (xTaskCreate(
 		task_wireless_process_data,
 		"wireless_process_data",
 		1024,
 		NULL,
 		tskIDLE_PRIORITY + 2,
-		&gyromouse.tasks.wireless_mouse_process_data);
+		&gyromouse.tasks.wireless_mouse_process_data) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create wireless process data task");
 
-	// xTaskCreate(
-	// 	task_dongle_send_ping,
-	// 	"dongle_send_ping",
-	// 	256,
-	// 	NULL,
-	// 	3,
-	// 	&gyromouse.tasks.dongle_send_ping);
+	if (xTaskCreate(
+		task_dongle_send_ping,
+		"dongle_send_ping",
+		1024,
+		NULL,
+		tskIDLE_PRIORITY + 3,
+		&gyromouse.tasks.dongle_send_ping) != pdPASS)
+		WRITE_COMMAND("error", "Failed to create ping task");
 
 	WRITE_COMMAND("state", "init_user_end");
 }

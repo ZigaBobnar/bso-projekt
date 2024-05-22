@@ -1,6 +1,6 @@
+import sys
 from time import sleep
 import serial
-
 
 port = '/dev/ttyUSB0'
 # port = '/dev/ttyUSB1'
@@ -9,14 +9,16 @@ port = '/dev/ttyUSB0'
 # port = 'COM21'
 # port = 'COM4'
 
+if len(sys.argv) > 1:
+    port = sys.argv[1]
 
 serial = serial.Serial(port, 115200, timeout=1)
 
 
 try:
     # Put atttached device into dongle mode (receive data from the mouse)
-    # serial.write(b'$mode=dongle\n')
-    serial.write(b'$debugging_enabled=true\n')
+    serial.write(b'$mode=dongle\n')
+    # serial.write(b'$debugging_enabled=true\n')
 
     while True:
         data = serial.readline()
@@ -29,6 +31,9 @@ try:
 
             # Auto confirm we are still in dongle mode
             if (data == '$dongle=check'):
+                serial.write(b'$mode=dongle\n')
+            elif (data == '$state=init_user_end'):
+                # Reset happened, re-enter dongle mode
                 serial.write(b'$mode=dongle\n')
 
             print(data)
