@@ -81,12 +81,14 @@ void task_main_refresh_data_and_send(void *pvArgs) {
 
 			float mouse_x = 0;
 			float mouse_y = 0;
+			uint8_t buttons;
 
 			// Parse the data
 			mouse_x = (float)(((int16_t *)rx_data)[0]) / 1000.0f;
 			mouse_y = (float)(((int16_t *)rx_data)[1]) / 1000.0f;
+			buttons = rx_data[4];
 
-			WRITE_COMMAND("data", "mouse_x=%f, mouse_y=%f", mouse_x, mouse_y);
+			WRITE_COMMAND("data", "mouse_x=%f, mouse_y=%f, buttons=%d", mouse_x, mouse_y, buttons);
 		}
 
 		// radio.powerDown();

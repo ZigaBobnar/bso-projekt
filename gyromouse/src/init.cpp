@@ -156,7 +156,7 @@ void user_init(void) {
 		"wireless_receive_data",
 		512,
 		NULL,
-		tskIDLE_PRIORITY + 5,
+		tskIDLE_PRIORITY + 7,
 		NULL) != pdPASS)
 		WRITE_COMMAND("error", "Failed to create wireless receive data task");
 

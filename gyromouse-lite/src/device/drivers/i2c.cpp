@@ -218,11 +218,11 @@ I2CDeviceTransaction I2CDevice::begin_transaction() {
 
 inline void I2CDevice::lock() {
     // i2c_spi_switch.reserve_i2c();
-    xSemaphoreTake(device_mutex, portMAX_DELAY);
+    // xSemaphoreTake(device_mutex, portMAX_DELAY);
 }
 
 inline void I2CDevice::unlock() {
-    xSemaphoreGive(device_mutex);
+    // xSemaphoreGive(device_mutex);
     // i2c_spi_switch.release_i2c();
 }
 

@@ -180,9 +180,9 @@ XYZInt16 MPU925x::get_gyroscope_offsets() {
     read_registers(MPU925x_Register::XG_OFFSET_H, 6, packed);
 
     return {
-        unpack_word_be(packed) << 1,
-        unpack_word_be(packed + 2) << 1,
-        unpack_word_be(packed + 4) << 1,
+        (int16_t)(unpack_word_be(packed) << 1),
+        (int16_t)(unpack_word_be(packed + 2) << 1),
+        (int16_t)(unpack_word_be(packed + 4) << 1),
     };
 }
 

@@ -251,8 +251,8 @@ void task_wireless_receive_data(void *pvParameters) {
 	while (true) {
         // Also perform full refresh every 100 ms in case we missed some interrupts
         if (nrf24.need_to_check_receive_queue || (current_time - last_full_refresh) * portTICK_PERIOD_MS > 100) {
-            nrf24._check_receive_queue();
             nrf24.need_to_check_receive_queue = false;
+            nrf24._check_receive_queue();
             last_full_refresh = current_time;
         }
 

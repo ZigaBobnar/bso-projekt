@@ -7,8 +7,14 @@
 #include <espressif/esp_common.h>
 
 
+#define NRF_DEBUG(...) printf(__VA_ARGS__)
+// #define NRF_DEBUG(...)
+
+
 void nrf24_interrupt_handler(uint8_t gpio_num) {
+    NRF_DEBUG("nrf24_interrupt_handler(pin %d)\n", gpio_num);
     if (gpio_num == nrf24.irq_pin) {
+        NRF_DEBUG("nrf24_interrupt_handler: handling interrupt\n");
         nrf24._handle_interrupt();
     }
 }
@@ -84,37 +90,51 @@ void NRF24::chip_enable(bool enable) {
 }
 
 void NRF24::_handle_interrupt() {
-    if (comms_mux.is_in_use) {
-        // There might be an ongoing transaction, so we cannot read the interrupt status from within the ISR
-        // We can only schedule to handle the interrupt at the regular interval
-        need_to_check_receive_queue = true;
+    NRF_DEBUG("nrf24: handling interrupt -> handoff to the regular task\n");
+    need_to_check_receive_queue = true;
 
-        return;
-    }
+    return;
 
-    if (comms_mux.current_protocol != CommsMux::EnabledProtocol::SPI) {
-        // We can reinitialize into SPI mode as comms are not in use
-        comms_mux.initialize_spi();
-    }
+    // if (comms_mux.is_in_use) {
+    //     NRF_DEBUG("nrf24: comms in use, cannot handle interrupt\n");
 
-    _handle_received_data();
+    //     // There might be an ongoing transaction, so we cannot read the interrupt status from within the ISR
+    //     // We can only schedule to handle the interrupt at the regular interval
+    //     need_to_check_receive_queue = true;
+
+    //     return;
+    // }
+
+    // if (comms_mux.current_protocol != CommsMux::EnabledProtocol::SPI) {
+    //     NRF_DEBUG("nrf24: comms not in SPI mode, reinitializing\n");
+    //     // We can reinitialize into SPI mode as comms are not in use
+    //     comms_mux.initialize_spi();
+    // }
+
+    // _handle_received_data();
 }
 
 void NRF24::_check_receive_queue() {
+    NRF_DEBUG("nrf24: checking receive queue\n");
     _handle_received_data();
 }
 
 void NRF24::_handle_received_data() {
+    NRF_DEBUG("nrf24: handling received data\n");
+
     uint8_t status_value = read_register(NRF_STATUS);
     if (status_value & BIT(RX_DR)) {
+        NRF_DEBUG("nrf24: RX_DR flagged\n");
         // There is a packet available
 
         bool fifo_has_data = (read_register(FIFO_STATUS) & BIT(RX_EMPTY)) == 0;
+        NRF_DEBUG("nrf24: Status: FIFO has data: %d\n", fifo_has_data);
         
         while (fifo_has_data) {
             // We have data available
             // uint8_t pipe_number = (status_value & (BIT(3) | BIT(2) | BIT(1))) >> 1;
             uint8_t payload_size = read_payload(spi_rx_buffer, sizeof(spi_rx_buffer));
+            NRF_DEBUG("nrf24: Payload size: %d\n", payload_size);
 
             wireless.add_incoming_packet_to_processing_queue(spi_rx_buffer, payload_size);
 
@@ -126,15 +146,19 @@ void NRF24::_handle_received_data() {
         }
 
         // Clear the RX Data Ready bit
+        // TODO: This could cause issues
+        NRF_DEBUG("nrf24: Clearing RX_DR bit\n");
         write_register(NRF_STATUS, BIT(RX_DR));
     }
     
     if (status_value & BIT(TX_DS)) {
+        NRF_DEBUG("nrf24: TX_DS flagged\n");
         // The packet has been sent and ack was received
         write_register(NRF_STATUS, BIT(TX_DS));
     }
 
     if (status_value & BIT(MAX_RT)) {
+        NRF_DEBUG("nrf24: MAX_RT flagged\n");
         // The packet has not been sent, maximum retransmissions reached
         // We must reset the bit to allow further transmissions
         write_register(NRF_STATUS, BIT(MAX_RT));
@@ -142,6 +166,8 @@ void NRF24::_handle_received_data() {
 }
 
 void NRF24::start_listening() {
+    NRF_DEBUG("nrf24: start_listening\n");
+
     // Set the PRIM_RX bit in the CONFIG register
     write_register(NRF_CONFIG, read_register(NRF_CONFIG) | BIT(PRIM_RX));
     // Set the status register to clear the RX Data Ready, TX Data Sent and Max Retransmits bits
@@ -158,6 +184,8 @@ void NRF24::start_listening() {
 }
 
 void NRF24::stop_listening() {
+    NRF_DEBUG("nrf24: stop_listening\n");
+
     chip_enable(false);
 
     sdk_os_delay_us(85);
@@ -176,12 +204,18 @@ void NRF24::stop_listening() {
 
 
 uint8_t NRF24::read_register(uint8_t reg, uint8_t* buffer_out, uint8_t length) {
+    NRF_DEBUG("nrf24: read_register(reg=%d, length=%d)\n", reg, length);
+
     SPIReservation spi = comms_mux.reserve_spi();
     uint8_t result = read_register_nolock(reg, buffer_out, length);
+    NRF_DEBUG("nrf24: read_register: result=%d\n", result);
+
     return result;
 }
 
 uint8_t NRF24::read_register_nolock(uint8_t reg, uint8_t* buffer_out, uint8_t length) {
+    NRF_DEBUG("nrf24: read_register_nolock(reg=%d, length=%d)\n", reg, length);
+
     // Start transaction
     chip_select(true);
 
@@ -209,12 +243,18 @@ uint8_t NRF24::read_register_nolock(uint8_t reg, uint8_t* buffer_out, uint8_t le
 }
 
 uint8_t NRF24::read_register(uint8_t reg) {
+    NRF_DEBUG("nrf24: read_register(reg=%d)\n", reg);
+
     SPIReservation spi = comms_mux.reserve_spi();
     uint8_t result = read_register_nolock(reg);
+    NRF_DEBUG("nrf24: read_register: result=%d\n", result);
+
     return result;
 }
 
 uint8_t NRF24::read_register_nolock(uint8_t reg) {
+    NRF_DEBUG("nrf24: read_register_nolock(reg=%d)\n", reg);
+
     // Start transaction
     chip_select(true);
 
@@ -239,12 +279,18 @@ uint8_t NRF24::read_register_nolock(uint8_t reg) {
 }
 
 uint8_t NRF24::write_register(uint8_t reg, const uint8_t* buffer_in, uint8_t length) {
+    NRF_DEBUG("nrf24: write_register(reg=%d, length=%d)\n", reg, length);
+
     SPIReservation spi = comms_mux.reserve_spi();
     uint8_t result = write_register_nolock(reg, buffer_in, length);
+    NRF_DEBUG("nrf24: write_register: result=%d\n", result);
+
     return result;
 }
 
 uint8_t NRF24::write_register_nolock(uint8_t reg, const uint8_t* buffer_in, uint8_t length) {
+    NRF_DEBUG("nrf24: write_register_nolock(reg=%d, length=%d)\n", reg, length);
+
     // Start transaction
     chip_select(true);
 
@@ -269,12 +315,18 @@ uint8_t NRF24::write_register_nolock(uint8_t reg, const uint8_t* buffer_in, uint
 }
 
 uint8_t NRF24::write_register(uint8_t reg, uint8_t value) {
+    NRF_DEBUG("nrf24: write_register(reg=%d, value=%d)\n", reg, value);
+
     SPIReservation spi = comms_mux.reserve_spi();
     uint8_t result = write_register_nolock(reg, value);
+    NRF_DEBUG("nrf24: write_register: result=%d\n", result);
+    
     return result;
 }
 
 uint8_t NRF24::write_register_nolock(uint8_t reg, uint8_t value) {
+    NRF_DEBUG("nrf24: write_register_nolock(reg=%d, value=%d)\n", reg, value);
+
     // Start transaction
     chip_select(true);
 
@@ -296,12 +348,16 @@ uint8_t NRF24::write_register_nolock(uint8_t reg, uint8_t value) {
 }
 
 uint8_t NRF24::write_payload(uint8_t* buffer_in, uint8_t length, const uint8_t write_type) {
+    NRF_DEBUG("nrf24: write_payload(length=%d, write_type=%d)\n", length, write_type);
+
     SPIReservation spi = comms_mux.reserve_spi();
     uint8_t result = write_payload_nolock(buffer_in, length, write_type);
     return result;
 }
 
 uint8_t NRF24::write_payload_nolock(uint8_t* buffer_in, uint8_t length, const uint8_t write_type) {
+    NRF_DEBUG("nrf24: write_payload_nolock(length=%d, write_type=%d)\n", length, write_type);
+
     // Start transaction
     chip_select(true);
 
@@ -332,6 +388,8 @@ uint8_t NRF24::read_payload(uint8_t* buffer_out, uint8_t length) {
 }
 
 uint8_t NRF24::read_payload_nolock(uint8_t* buffer_out, uint8_t length) {
+    NRF_DEBUG("nrf24: read_payload_nolock(length=%d)\n", length);
+    
     // Start transaction
     chip_select(true);
 

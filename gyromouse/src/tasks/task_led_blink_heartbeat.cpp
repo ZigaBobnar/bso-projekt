@@ -27,28 +27,22 @@ void task_led_blink_invert(void *pvParameters) {
 void task_led_blink_heartbeat(void *pvParameters) {
     while(1) {
         io.set_module_led(0, 1);
-        io.toggle_module_led(3);
         vTaskDelay(PQ / portTICK_PERIOD_MS);
 
         io.set_module_led(0, 0);
-        io.toggle_module_led(3);
         vTaskDelay(QR / portTICK_PERIOD_MS);
 
         io.set_module_led(0, 1);
-        io.toggle_module_led(3);
         vTaskDelay(R / portTICK_PERIOD_MS);
 
         io.set_module_led(0, 0);
-        io.toggle_module_led(3);
         vTaskDelay(RS / portTICK_PERIOD_MS);
         vTaskDelay(ST / portTICK_PERIOD_MS);
 
         io.set_module_led(0, 1);
-        io.toggle_module_led(3);
         vTaskDelay(T / portTICK_PERIOD_MS);
 
         io.set_module_led(0, 0);
-        io.toggle_module_led(3);
         vTaskDelay(FINAL_DELAY / portTICK_PERIOD_MS);
     }
     

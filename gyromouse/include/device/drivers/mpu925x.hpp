@@ -296,7 +296,7 @@ public:
     void magnetometer_soft_reset();
     XYZUint8 magnetometer_get_sensitivity_adjustment();
 
-private:
+public:
     I2CDevice& mpu_device;
     I2CDevice& ak_device;
 
