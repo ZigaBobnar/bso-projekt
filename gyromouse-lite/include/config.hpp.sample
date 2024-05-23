@@ -1,0 +1,13 @@
+#pragma once
+
+// #define ENABLE_OTA
+#undef ENABLE_OTA
+
+
+// #define ENABLE_WIFI
+#undef ENABLE_WIFI
+
+#ifdef ENABLE_WIFI
+    #define WIFI_SSID "aaaaaa"
+    #define WIFI_PASSWORD "bbbbbb"
+#endif
