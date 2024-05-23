@@ -15,7 +15,6 @@
 #include "common.hpp"
 #include "config.hpp"
 
-#include "device/wireless.hpp"
 #include "device/drivers/mpu925x.hpp"
 
 #include "RF24/RF24.h"
@@ -187,8 +186,6 @@ void user_init(void) {
         sdk_wifi_set_opmode(NULL_MODE);
     #endif
 
-    gyromouse.init_all();
-
     // Data task
     if (xTaskCreate(
         task_main_refresh_data_and_send,
@@ -197,7 +194,7 @@ void user_init(void) {
         NULL,
         tskIDLE_PRIORITY + 8,
         NULL) != pdPASS)
-        WRITE_COMMAND("error", "Failed to create ping task");
+        WRITE_COMMAND("error", "Failed to create main task");
 
     WRITE_COMMAND("state", "init_user_end");
 }

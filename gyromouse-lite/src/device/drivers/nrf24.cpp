@@ -1,6 +1,5 @@
 #include "device/drivers/nrf24.hpp"
 #include "device/drivers/comms_mux.hpp"
-#include "device/wireless.hpp"
 
 #include <RF24/nRF24L01.h>
 #include <RF24/RF24.h>
@@ -136,7 +135,8 @@ void NRF24::_handle_received_data() {
             uint8_t payload_size = read_payload(spi_rx_buffer, sizeof(spi_rx_buffer));
             NRF_DEBUG("nrf24: Payload size: %d\n", payload_size);
 
-            wireless.add_incoming_packet_to_processing_queue(spi_rx_buffer, payload_size);
+            // TODO: Process packet
+            // wireless.add_incoming_packet_to_processing_queue(spi_rx_buffer, payload_size);
 
             fifo_has_data = (read_register(FIFO_STATUS) & BIT(RX_EMPTY)) == 0;
             if (fifo_has_data) {

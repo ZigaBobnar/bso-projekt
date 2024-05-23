@@ -1,6 +1,6 @@
 PROGRAM=gyromouse-lite
 EXTRA_COMPONENTS = extras/i2c extras/rboot-ota ../../gyromouse/components/RF24
-PROGRAM_SRC_DIR=src src/tasks src/device src/device/drivers components/RF24
+PROGRAM_SRC_DIR=src src/device src/device/drivers components/RF24
 
 # ESPPORT=/dev/ttyUSB0
 ESPPORT=/dev/ttyUSB1

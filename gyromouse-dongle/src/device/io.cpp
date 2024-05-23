@@ -111,7 +111,7 @@ void IO::process_buttons_update(uint8_t buttons_pcf) {
     for (int i = 0; i < BUTTONS_COUNT; i++) {
         if (button_states[i] != button_previous_states[i]) {
             // State changed
-            gyromouse.on_button_state_change(i, button_states[i]);
+            // gyromouse.on_button_state_change(i, button_states[i]);
         }
     }
 }

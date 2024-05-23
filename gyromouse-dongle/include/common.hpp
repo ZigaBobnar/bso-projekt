@@ -51,8 +51,6 @@
 #define IMU_UPDATE_INTERVAL_DEFAULT 20
 
 
-#include "gyromouse.hpp"
-
 
 // Tasks
 void task_watchdog(void *pvParameters);
