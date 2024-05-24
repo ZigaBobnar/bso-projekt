@@ -5,8 +5,8 @@ import pyautogui
 
 
 
-port = '/dev/ttyUSB0'
-# port = '/dev/ttyUSB1'
+# port = '/dev/ttyUSB0'
+port = '/dev/ttyUSB1'
 # port = '/dev/ttyUSB2'
 # port = 'COM19'
 # port = 'COM21'

@@ -50,7 +50,7 @@ float baseline_gyro_y = 0;
 
 void calibrate_gyroscope() {
     printf("Calibrating gyroscope...\n");
-    const int calibration_duration_ms = 1000;
+    const int calibration_duration_ms = 500;
     const int calibration_samples = calibration_duration_ms / 10; // assuming a 10ms delay between samples
 
     float sum_gyro_z = 0;
@@ -61,7 +61,7 @@ void calibrate_gyroscope() {
         XYZFloat gyroscope = mpu.get_gyroscope_values();
         sum_gyro_z += gyroscope.z;
         sum_gyro_y += gyroscope.y;
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
 
     baseline_gyro_z = sum_gyro_z / calibration_samples;
@@ -120,7 +120,7 @@ void task_main_refresh_data_and_send(void *pvArgs) {
         float adjusted_gyro_y = gyroscope.y - baseline_gyro_y;
 
         // Calculate kinematics of mouse
-        int16_t mouse_deltas[2] = {1000, 1000};
+        int16_t mouse_deltas[2] = {0, 0};
 
         // Convert adjusted gyroscope readings to angles (assuming a simplified model for demonstration)
         float angle_z = adjusted_gyro_z; // Replace with appropriate conversion if necessary
@@ -128,20 +128,20 @@ void task_main_refresh_data_and_send(void *pvArgs) {
 
         // Map angles to 0-2000 range
         if (angle_z >= 0 && angle_z <= 90) {
-            mouse_deltas[0] = (int16_t)(1000 + angle_z * (1000.0 / 90.0));
+            mouse_deltas[0] = (int16_t)(angle_z * (1000.0 / 90.0));
         } else if (angle_z < 0 && angle_z >= -90) {
-            mouse_deltas[0] = (int16_t)(1000 + angle_z * (1000.0 / 90.0));
+            mouse_deltas[0] = (int16_t)(angle_z * (1000.0 / 90.0));
         }
 
         if (angle_y >= 0 && angle_y <= 90) {
-            mouse_deltas[1] = (int16_t)(1000 + angle_y * (1000.0 / 90.0));
+            mouse_deltas[1] = (int16_t)(angle_y * (1000.0 / 90.0));
         } else if (angle_y < 0 && angle_y >= -90) {
-            mouse_deltas[1] = (int16_t)(1000 + angle_y * (1000.0 / 90.0));
+            mouse_deltas[1] = (int16_t)(angle_y * (1000.0 / 90.0));
         }
 
         // Constrain values to the 0-2000 range
-        mouse_deltas[0] = mouse_deltas[0] < 0 ? 0 : (mouse_deltas[0] > 2000 ? 2000 : mouse_deltas[0]);
-        mouse_deltas[1] = mouse_deltas[1] < 0 ? 0 : (mouse_deltas[1] > 2000 ? 2000 : mouse_deltas[1]);
+        mouse_deltas[0] = mouse_deltas[0] < -2000 ? -2000 : (mouse_deltas[0] > 2000 ? 2000 : mouse_deltas[0]);
+        mouse_deltas[1] = mouse_deltas[1] < -2000 ? -2000 : (mouse_deltas[1] > 2000 ? 2000 : mouse_deltas[1]);
 
         WRITE_COMMAND("mouse_delta", "%d,%d", mouse_deltas[0], mouse_deltas[1]);
 

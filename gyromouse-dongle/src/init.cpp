@@ -84,7 +84,7 @@ void task_main_receive_data(void *pvArgs) {
 			uint8_t payload_size = radio.getDynamicPayloadSize();
 			radio.read(&rx_data, payload_size);
 			
-			WRITE_COMMAND("data", "received %d bytes, dt=", payload_size, (receive_time - last_receive_time) * portTICK_PERIOD_MS);
+			WRITE_COMMAND("data", "received %d bytes, dt=%d", payload_size, (receive_time - last_receive_time) * portTICK_PERIOD_MS);
 			last_receive_time = receive_time;
 
 

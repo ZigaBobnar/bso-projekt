@@ -74,9 +74,12 @@ void task_process_serial_commands(void *pvParameters);
 #define WRITE_COMMAND_PARTIAL(command, value, ...) printf(COMMAND_FORMAT(command, value) ";", ##__VA_ARGS__)
 
 #ifdef DEBUG_PRINTING_ENABLED
-#define DEBUG_PRINT(format, ...) if (gyromouse.debugging_enabled) printf(format, ##__VA_ARGS__)
-#define DEBUG_PRINTLN(format, ...) if (gyromouse.debugging_enabled) printf(format "\n", ##__VA_ARGS__)
-#define DEBUG_COMMAND(command, value, ...) if (gyromouse.debugging_enabled) WRITE_COMMAND(command, value, ##__VA_ARGS__)
+#define DEBUG_PRINT(format, ...) printf(format, ##__VA_ARGS__)
+#define DEBUG_PRINTLN(format, ...) printf(format "\n", ##__VA_ARGS__)
+#define DEBUG_COMMAND(command, value, ...) WRITE_COMMAND(command, value, ##__VA_ARGS__)
+// #define DEBUG_PRINT(format, ...) if (gyromouse.debugging_enabled) printf(format, ##__VA_ARGS__)
+// #define DEBUG_PRINTLN(format, ...) if (gyromouse.debugging_enabled) printf(format "\n", ##__VA_ARGS__)
+// #define DEBUG_COMMAND(command, value, ...) if (gyromouse.debugging_enabled) WRITE_COMMAND(command, value, ##__VA_ARGS__)
 #else
 #define DEBUG_PRINT(format, ...)
 #define DEBUG_PRINTLN(format, ...)

@@ -1,7 +1,8 @@
 import sys
 import serial
 
-port = '/dev/ttyUSB0'
+# port = '/dev/ttyUSB0'
+port = '/dev/ttyUSB1'
 # port = 'COM19'
 # port = 'COM21'
 # port = 'COM4'
